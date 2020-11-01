@@ -94,6 +94,5 @@ generate-models: migrate
 	sqlboiler psql --config sqlboiler.toml
 
 generate-mock:
-	# FIXME: installing mockery with go get is deprecated. See https://github.com/vektra/mockery#installation
 	GO111MODULE=on go get github.com/vektra/mockery/.../
 	mockery -dir ./internal -all -keeptree

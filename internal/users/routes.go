@@ -13,7 +13,7 @@ import (
 // Handlers handles users routes
 func Handlers(r *mux.Router, service Service) {
 	r.HandleFunc("/login", loginHandlers(service))
-	r.HandleFunc("/signup", signUpHandler(service))
+	r.HandleFunc("/signup", SignUpHandler(service))
 }
 
 func loginHandlers(userService Service) func(http.ResponseWriter, *http.Request) {
@@ -22,7 +22,8 @@ func loginHandlers(userService Service) func(http.ResponseWriter, *http.Request)
 	}
 }
 
-func signUpHandler(userService Service) func(http.ResponseWriter, *http.Request) {
+// SignUpHandler SignUpHandler
+func SignUpHandler(userService Service) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -61,9 +62,9 @@ func signUpHandler(userService Service) func(http.ResponseWriter, *http.Request)
 }
 
 func statusAndErrorCodeForServiceError(err error) (int, string) {
-	if errors.As(err, &ValidationError{}) {
+	if errors.As(err, &errorcode.ValidationError{}) {
 		return http.StatusBadRequest, errorcode.ErrorsInRequestData
-	} else if errors.As(err, &DBError{}) {
+	} else if errors.As(err, &errorcode.DBError{}) {
 		return http.StatusInternalServerError, errorcode.DatabaseProcessError
 	}
 	return http.StatusInternalServerError, errorcode.InternalError

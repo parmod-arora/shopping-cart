@@ -30,8 +30,8 @@ type userRequest struct {
 type userResponse struct {
 	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
-	FirstName *string   `json:"firstname"`
-	LastName  *string   `json:"lastname"`
+	FirstName *string   `json:"firstname,omitempty"`
+	LastName  *string   `json:"lastname,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }

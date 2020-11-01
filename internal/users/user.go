@@ -6,6 +6,7 @@ import (
 	"strings"
 
 	"cinemo.com/shoping-cart/framework/loglib"
+	"cinemo.com/shoping-cart/internal/errorcode"
 	"cinemo.com/shoping-cart/internal/orm"
 	"github.com/friendsofgo/errors"
 	"github.com/volatiletech/null/v8"
@@ -45,13 +46,15 @@ func (s *userService) CreateUser(ctx context.Context, username string, password 
 
 	existingUser, err := retrieveUserByUsername(ctx, s.DB, username)
 	if err != nil {
-		logger.Errorf("error: retrieveUserByUsername %s", err.Error())
-		return nil, err
+		if err != sql.ErrNoRows {
+			logger.Errorf("error: retrieveUserByUsername %s", err.Error())
+			return nil, err
+		}
 	}
 
 	if existingUser != nil {
 		logger.Infof("User already exists with username %s", username)
-		return nil, ValidationError{Err: errors.Errorf("user already exists with %s", username)}
+		return nil, errorcode.ValidationError{Err: errors.Errorf("user already exists with %s", username)}
 	}
 
 	return saveUser(ctx, s.DB, &User{

@@ -5,17 +5,18 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
 	"os"
 	"strings"
 
 	"cinemo.com/shoping-cart/framework/db"
-	"cinemo.com/shoping-cart/internal/testutil/projectpath"
+	"cinemo.com/shoping-cart/pkg/projectpath"
 	"cinemo.com/shoping-cart/pkg/trace"
 
 	// include migrate file driver
-	_ "github.com/golang-migrate/migrate/v4/source/file"
 	"github.com/mattes/migrate"
 	"github.com/mattes/migrate/database/postgres"
+	_ "github.com/mattes/migrate/source/file"
 
 	// import pq driver
 	_ "github.com/lib/pq"
@@ -29,17 +30,22 @@ func PrepareDatabase(traceInfo trace.Info) (*sql.DB, string, error) {
 	defer func() {
 		migrateDbConnPool.Close()
 	}()
-	migrateDbConnPool.Exec("DROP SCHEMA  IF EXISTS " + schema + " CASCADE")
-	migrateDbConnPool.Exec("CREATE SCHEMA " + schema)
+	migrateDbConnPool.Exec("DROP SCHEMA IF EXISTS " + schema + " CASCADE")
+	_, err := migrateDbConnPool.Exec("CREATE SCHEMA " + schema)
+	if err != nil {
+		log.Fatalf("error: %s", err.Error())
+	}
 	dbConnPool := db.InitDatabase(os.Getenv("DATABASE_URL") + "&search_path=" + schema)
 	driver, err := postgres.WithInstance(dbConnPool, &postgres.Config{})
 	if err != nil {
+		log.Fatalf("=====error: %s", err.Error())
 		return nil, schema, err
 	}
 	m, err := migrate.NewWithDatabaseInstance(
 		"file://"+projectpath.Root+"/data/migrations",
 		"postgres", driver)
 	if err != nil {
+		log.Fatalf("=====error: %s", err.Error())
 		return nil, schema, err
 	}
 	m.Up()
