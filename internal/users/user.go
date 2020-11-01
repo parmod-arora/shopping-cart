@@ -18,7 +18,8 @@ import (
 // Service is the interface to expose User functions
 type Service interface {
 	CreateUser(ctx context.Context, username string, password string, firstName *string, lastName *string) (*User, error)
-	Validate(username string, password string) (*User, error)
+	RetrieveUserByUsername(ctx context.Context, username string) (*User, error)
+	Validate(ctx context.Context, username string, password string) (*User, error)
 }
 
 type userService struct {
@@ -44,7 +45,7 @@ func (s *userService) CreateUser(ctx context.Context, username string, password 
 		return nil, err
 	}
 
-	existingUser, err := retrieveUserByUsername(ctx, s.DB, username)
+	existingUser, err := s.RetrieveUserByUsername(ctx, username)
 	if err != nil {
 		if err != sql.ErrNoRows {
 			logger.Errorf("error: retrieveUserByUsername %s", err.Error())
@@ -65,10 +66,10 @@ func (s *userService) CreateUser(ctx context.Context, username string, password 
 	})
 }
 
-func retrieveUserByUsername(ctx context.Context, db *sql.DB, username string) (*User, error) {
+func (s *userService) RetrieveUserByUsername(ctx context.Context, username string) (*User, error) {
 	ormUser, err := orm.Users(
 		qm.Where(orm.UserColumns.Username+"=?", username),
-	).One(ctx, db)
+	).One(ctx, s.DB)
 	if err != nil {
 		return nil, err
 	}
@@ -109,10 +110,17 @@ func transformOrmToModelUser(user *orm.User) *User {
 	}
 }
 
-func (s *userService) Validate(username string, password string) (*User, error) {
-	return &User{
-		Username: username,
-	}, nil
+func (s *userService) Validate(ctx context.Context, username string, password string) (*User, error) {
+	user, err := s.RetrieveUserByUsername(ctx, username)
+	if err != nil {
+		return nil, errorcode.ValidationError{Err: errors.Errorf("invalid username/password")}
+	}
+
+	if err := bcrypt.CompareHashAndPassword([]byte(user.Password), []byte(password)); err != nil {
+		return nil, errorcode.ValidationError{Err: errors.Errorf("invalid username/password")}
+	}
+
+	return user, nil
 }
 
 // EncryptPassword generates hashed password from string

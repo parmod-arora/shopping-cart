@@ -14,3 +14,15 @@ const DatabaseProcessError = "database_process_error"
 
 // RecordNotFoundError error
 const RecordNotFoundError = "record_not_found"
+
+// CreateTokenFailed error
+const CreateTokenFailed = "create_token_failed"
+
+// LoginFailed error
+const LoginFailed = "login_failed"
+
+// AuthHeaderReadFailed error
+const AuthHeaderReadFailed = "AuthHeaderReadFailed"
+
+// AuthValidateFailed error
+const AuthValidateFailed = "AuthValidateFailed"

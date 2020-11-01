@@ -46,3 +46,22 @@ func (req *userRequest) Validate() error {
 	}
 	return nil
 }
+
+type loginRequest struct {
+	Username string `json:"username"`
+	Password string `json:"password" validate:"required"`
+}
+
+type loginResponse struct {
+	Token string `json:"token"`
+}
+
+func (req *loginRequest) Validate() error {
+	var errorArray []string
+	validator.CheckRule(&errorArray, len(req.Username) > 0, "username is mandatory")
+	validator.CheckRule(&errorArray, len(req.Password) > 0, "password is mandatory")
+	if len(errorArray) > 0 {
+		return errors.New(strings.Join(errorArray, "; "))
+	}
+	return nil
+}

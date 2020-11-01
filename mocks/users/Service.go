@@ -37,13 +37,13 @@ func (_m *Service) CreateUser(ctx context.Context, username string, password str
 	return r0, r1
 }
 
-// Validate provides a mock function with given fields: username, password
-func (_m *Service) Validate(username string, password string) (*users.User, error) {
-	ret := _m.Called(username, password)
+// RetrieveUserByUsername provides a mock function with given fields: ctx, username
+func (_m *Service) RetrieveUserByUsername(ctx context.Context, username string) (*users.User, error) {
+	ret := _m.Called(ctx, username)
 
 	var r0 *users.User
-	if rf, ok := ret.Get(0).(func(string, string) *users.User); ok {
-		r0 = rf(username, password)
+	if rf, ok := ret.Get(0).(func(context.Context, string) *users.User); ok {
+		r0 = rf(ctx, username)
 	} else {
 		if ret.Get(0) != nil {
 			r0 = ret.Get(0).(*users.User)
@@ -51,8 +51,31 @@ func (_m *Service) Validate(username string, password string) (*users.User, erro
 	}
 
 	var r1 error
-	if rf, ok := ret.Get(1).(func(string, string) error); ok {
-		r1 = rf(username, password)
+	if rf, ok := ret.Get(1).(func(context.Context, string) error); ok {
+		r1 = rf(ctx, username)
+	} else {
+		r1 = ret.Error(1)
+	}
+
+	return r0, r1
+}
+
+// Validate provides a mock function with given fields: ctx, username, password
+func (_m *Service) Validate(ctx context.Context, username string, password string) (*users.User, error) {
+	ret := _m.Called(ctx, username, password)
+
+	var r0 *users.User
+	if rf, ok := ret.Get(0).(func(context.Context, string, string) *users.User); ok {
+		r0 = rf(ctx, username, password)
+	} else {
+		if ret.Get(0) != nil {
+			r0 = ret.Get(0).(*users.User)
+		}
+	}
+
+	var r1 error
+	if rf, ok := ret.Get(1).(func(context.Context, string, string) error); ok {
+		r1 = rf(ctx, username, password)
 	} else {
 		r1 = ret.Error(1)
 	}

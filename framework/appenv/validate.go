@@ -13,6 +13,9 @@ func Validate() {
 	// Database variables
 	// ------------------------------------
 	validateNotEmptyF("DATABASE_URL")
+	validateNotEmptyF("JWT_EXPIRES_SECONDS")
+	validateNotEmptyF("SIGNING_PRIVATE_KEY")
+	validateNotEmptyF("SIGNING_PUB_KEY")
 
 }
 
