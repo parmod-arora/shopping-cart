@@ -77,7 +77,7 @@ dbdrop:
 
 # sleep is to delay the test from running to ensure all services (i.e. db) are up
 sleep:
-	sleep 5
+	sleep 1
 
 # ----------------------------
 # Tools
@@ -91,10 +91,7 @@ SQLBOILER_GOMOD := $(shell grep sqlboiler go.mod)
 SQLBOILER_VER := $(word 2,$(strip $(SQLBOILER_GOMOD)))
 # run migrate; run proper sqlboiler; then tidy go.mod
 generate-models: migrate
-	GO111MODULE=on go get github.com/volatiletech/sqlboiler@$(SQLBOILER_VER) && \
-	GO111MODULE=on go get github.com/volatiletech/sqlboiler/drivers/sqlboiler-psql@$(SQLBOILER_VER) && \
-	sqlboiler psql --config sqlboiler.toml && \
-	GO111MODULE=on go mod tidy
+	sqlboiler psql --config sqlboiler.toml
 
 generate-mock:
 	# FIXME: installing mockery with go get is deprecated. See https://github.com/vektra/mockery#installation

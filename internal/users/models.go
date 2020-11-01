@@ -10,7 +10,7 @@ import (
 
 // User structure in app
 type User struct {
-	ID        int
+	ID        int64
 	FirstName *string
 	LastName  *string
 	Username  string
@@ -28,7 +28,7 @@ type userRequest struct {
 }
 
 type userResponse struct {
-	ID        int       `json:"id"`
+	ID        int64     `json:"id"`
 	Username  string    `json:"username"`
 	FirstName *string   `json:"firstname"`
 	LastName  *string   `json:"lastname"`

@@ -8,6 +8,5 @@ output="internal/orm"
   user="shopingcart"
   pass=""
   sslmode="disable"
-  whitelist=[""]
+  whitelist=["users"]
   schema="public"
-[

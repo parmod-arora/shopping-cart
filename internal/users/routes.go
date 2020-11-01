@@ -40,7 +40,7 @@ func signUpHandler(userService Service) func(http.ResponseWriter, *http.Request)
 		}
 
 		// create user in database
-		user, err := userService.CreateUser(req.Username, req.Password, req.FirstName, req.LastName)
+		user, err := userService.CreateUser(ctx, req.Username, req.Password, req.FirstName, req.LastName)
 		if err != nil {
 			status, errCode := statusAndErrorCodeForServiceError(err)
 			httpresponse.ErrorResponseJSON(ctx, w, status, errCode, err.Error())

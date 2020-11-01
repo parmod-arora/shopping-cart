@@ -8,5 +8,7 @@ CREATE TABLE users (
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
+ALTER TABLE users ADD UNIQUE (username);
+
 -- Indices -------------------------------------------------------
 CREATE INDEX "users_username_idx" ON users(username);
