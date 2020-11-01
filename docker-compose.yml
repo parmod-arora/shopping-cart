@@ -1,0 +1,55 @@
+version: "3.5"
+
+services:
+  go:
+    container_name: go-local
+    image: golang:1.13
+    ports:
+      - "3000:3000"
+    environment:
+      TZ: Asia/Singapore
+      DATABASE_URL: postgres://shopingcart:@db:5432/shopingcart?sslmode=disable
+    volumes:
+      - api-go-build-cache:/root/.cache/go-build
+    networks:
+      - shopingcart
+  db:
+    container_name: db-local
+    ports:
+      - "5433:5432"
+    image: postgres:9.6-alpine
+    restart: always
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready"]
+      interval: 30s
+      timeout: 30s
+      retries: 3
+    environment:
+      POSTGRES_USER: shopingcart
+      POSTGRES_HOST_AUTH_METHOD: trust
+    networks:
+      - shopingcart
+
+  db-migrate:
+    container_name: db-migrate-shopingcart-local
+    image: migrate/migrate:v4.6.2
+    restart: "no"
+    entrypoint: ""
+    environment:
+      DATABASE_URL: postgres://shopingcart:@db:5432/shopingcart?sslmode=disable
+    networks:
+      - shopingcart
+
+  alpine:
+    container_name: alpine-local
+    image: alpine
+    restart: "no"
+    networks:
+      - shopingcart
+  
+networks:
+  shopingcart:
+
+volumes:
+  api-go-build-cache:
+    name: shopingcart-api-go-build-cache-dev

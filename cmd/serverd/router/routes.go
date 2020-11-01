@@ -5,8 +5,10 @@ import (
 	"net/http"
 	"os"
 
-	"cinemo.com/shoping-cart/cmd/serverd/middleware"
-	"cinemo.com/shoping-cart/internal/application"
+	"cinemo.com/shoping-cart/application"
+	"cinemo.com/shoping-cart/framework/web/middleware"
+	"cinemo.com/shoping-cart/internal/products"
+	"cinemo.com/shoping-cart/internal/users"
 	"github.com/gorilla/mux"
 )
 
@@ -24,20 +26,13 @@ func init() {
 // Handler returns the http handler that handles all requests
 func Handler(app *application.App) http.Handler {
 	r := mux.NewRouter()
-
-	// // Register base middlewares
-	// r.Use(middleware.Recover())
+	// @TODO add panic recover middleware
 	r.Use(middleware.RequestLogger)
 	r.StrictSlash(true)
+	v1 := r.PathPrefix("/api/v1").Subrouter()
 
-	v1Router := r.PathPrefix("/api/v1").Subrouter()
-
-	usersRouter := v1Router.PathPrefix("users").Subrouter()
-	// // API routes
-	// r.Group(api.Router(app))
-
-	// // File server
-	// r.Group(fs)
+	users.Handlers(v1.PathPrefix("/users").Subrouter(), app.UserService)
+	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService)
 
 	return r
 }

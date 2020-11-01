@@ -1,19 +1,15 @@
 package middleware
 
 import (
-	"context"
 	"net/http"
 	"strings"
 	"time"
 
-	"cinemo.com/shoping-cart/cmd/serverd/appenv"
+	"cinemo.com/shoping-cart/framework/appenv"
+	"cinemo.com/shoping-cart/framework/loglib"
 	"github.com/google/uuid"
 	"github.com/sirupsen/logrus"
 )
-
-type contextKey string
-
-var loggerContextKey = contextKey("logger")
 
 var instanceID = time.Now().Format("20060102150405") + "-" + appenv.GetWithDefault("CF_INSTANCE_INDEX", "X")
 
@@ -35,9 +31,8 @@ func RequestLogger(next http.Handler) http.Handler {
 			WithField("referer", r.Referer()).
 			WithField("agent", r.UserAgent())
 
-		ctx = SetLogger(ctx, logger)
-		logger.
-			Infof("START")
+		ctx = loglib.SetLogger(ctx, logger.Logger)
+		logger.Infof("START")
 
 		r = r.WithContext(ctx)
 		next.ServeHTTP(w, r)
@@ -48,9 +43,4 @@ func RequestLogger(next http.Handler) http.Handler {
 
 	}
 	return http.HandlerFunc(fn)
-}
-
-// SetLogger sets the logger into the provided context and returns a copy
-func SetLogger(ctx context.Context, value *logrus.Entry) context.Context {
-	return context.WithValue(ctx, loggerContextKey, value)
 }

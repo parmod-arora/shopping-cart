@@ -10,7 +10,8 @@ import (
 	"time"
 
 	// import pq driver
-	"cinemo.com/shoping-cart/cmd/serverd/appenv"
+
+	"cinemo.com/shoping-cart/framework/appenv"
 	_ "github.com/lib/pq"
 )
 

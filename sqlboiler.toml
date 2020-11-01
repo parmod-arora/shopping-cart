@@ -1,0 +1,13 @@
+pkgname="orm"
+no-tests="true"
+output="internal/orm"
+[psql]
+  dbname="shopingcart"
+  host="localhost"
+  port=5433
+  user="shopingcart"
+  pass=""
+  sslmode="disable"
+  whitelist=[""]
+  schema="public"
+[
