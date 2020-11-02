@@ -36,17 +36,6 @@ func (s *productService) RetrieveProducts(ctx context.Context) ([]Product, error
 	return models, nil
 }
 
-func transformModelProductToOrm(product *Product) *orm.Product {
-	return &orm.Product{
-		ID:        product.ID,
-		Amount:    product.Amount,
-		Details:   product.Details,
-		Name:      product.Name,
-		CreatedAt: product.CreatedAt,
-		UpdatedAt: product.UpdatedAt,
-	}
-}
-
 func transformOrmToModelProduct(product *orm.Product) *Product {
 	return &Product{
 		ID:        product.ID,

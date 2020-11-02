@@ -24,17 +24,17 @@ import (
 
 // ProductDiscount is an object representing the database table.
 type ProductDiscount struct {
-	ID                 int64      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name               string     `boil:"name" json:"name" toml:"name" yaml:"name"`
-	ProductID          int64      `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
-	DiscountType       string     `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
-	Quantity           int64      `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
-	QuantityFN         string     `boil:"quantity_fn" json:"quantity_fn" toml:"quantity_fn" yaml:"quantity_fn"`
-	Discount           null.Int64 `boil:"discount" json:"discount,omitempty" toml:"discount" yaml:"discount,omitempty"`
-	EffectiveStartDate time.Time  `boil:"effective_start_date" json:"effective_start_date" toml:"effective_start_date" yaml:"effective_start_date"`
-	EffectiveEndDate   null.Time  `boil:"effective_end_date" json:"effective_end_date,omitempty" toml:"effective_end_date" yaml:"effective_end_date,omitempty"`
-	CreatedAt          time.Time  `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt          time.Time  `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	ID                 int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name               string    `boil:"name" json:"name" toml:"name" yaml:"name"`
+	ProductID          int64     `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
+	DiscountType       string    `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
+	Quantity           int64     `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
+	QuantityFN         string    `boil:"quantity_fn" json:"quantity_fn" toml:"quantity_fn" yaml:"quantity_fn"`
+	Discount           int64     `boil:"discount" json:"discount" toml:"discount" yaml:"discount"`
+	EffectiveStartDate time.Time `boil:"effective_start_date" json:"effective_start_date" toml:"effective_start_date" yaml:"effective_start_date"`
+	EffectiveEndDate   null.Time `boil:"effective_end_date" json:"effective_end_date,omitempty" toml:"effective_end_date" yaml:"effective_end_date,omitempty"`
+	CreatedAt          time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt          time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
 	R *productDiscountR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L productDiscountL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -98,7 +98,7 @@ var ProductDiscountWhere = struct {
 	DiscountType       whereHelperstring
 	Quantity           whereHelperint64
 	QuantityFN         whereHelperstring
-	Discount           whereHelpernull_Int64
+	Discount           whereHelperint64
 	EffectiveStartDate whereHelpertime_Time
 	EffectiveEndDate   whereHelpernull_Time
 	CreatedAt          whereHelpertime_Time
@@ -110,7 +110,7 @@ var ProductDiscountWhere = struct {
 	DiscountType:       whereHelperstring{field: "\"product_discounts\".\"discount_type\""},
 	Quantity:           whereHelperint64{field: "\"product_discounts\".\"quantity\""},
 	QuantityFN:         whereHelperstring{field: "\"product_discounts\".\"quantity_fn\""},
-	Discount:           whereHelpernull_Int64{field: "\"product_discounts\".\"discount\""},
+	Discount:           whereHelperint64{field: "\"product_discounts\".\"discount\""},
 	EffectiveStartDate: whereHelpertime_Time{field: "\"product_discounts\".\"effective_start_date\""},
 	EffectiveEndDate:   whereHelpernull_Time{field: "\"product_discounts\".\"effective_end_date\""},
 	CreatedAt:          whereHelpertime_Time{field: "\"product_discounts\".\"created_at\""},

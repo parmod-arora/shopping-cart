@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
-	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -24,18 +23,18 @@ import (
 
 // ProductComboDiscount is an object representing the database table.
 type ProductComboDiscount struct {
-	ID                            int64      `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name                          string     `boil:"name" json:"name" toml:"name" yaml:"name"`
-	ProductID                     int64      `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
-	ProductQuantity               int64      `boil:"product_quantity" json:"product_quantity" toml:"product_quantity" yaml:"product_quantity"`
-	ProductQuantityFN             string     `boil:"product_quantity_fn" json:"product_quantity_fn" toml:"product_quantity_fn" yaml:"product_quantity_fn"`
-	DiscountType                  string     `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
-	Discount                      null.Int64 `boil:"discount" json:"discount,omitempty" toml:"discount" yaml:"discount,omitempty"`
-	PackagedWithProductID         int64      `boil:"packaged_with_product_id" json:"packaged_with_product_id" toml:"packaged_with_product_id" yaml:"packaged_with_product_id"`
-	PackagedWithProductQuantity   int64      `boil:"packaged_with_product_quantity" json:"packaged_with_product_quantity" toml:"packaged_with_product_quantity" yaml:"packaged_with_product_quantity"`
-	PackagedWithProductQuantityFN string     `boil:"packaged_with_product_quantity_fn" json:"packaged_with_product_quantity_fn" toml:"packaged_with_product_quantity_fn" yaml:"packaged_with_product_quantity_fn"`
-	CreatedAt                     time.Time  `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt                     time.Time  `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	ID                            int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name                          string    `boil:"name" json:"name" toml:"name" yaml:"name"`
+	ProductID                     int64     `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
+	ProductQuantity               int64     `boil:"product_quantity" json:"product_quantity" toml:"product_quantity" yaml:"product_quantity"`
+	ProductQuantityFN             string    `boil:"product_quantity_fn" json:"product_quantity_fn" toml:"product_quantity_fn" yaml:"product_quantity_fn"`
+	DiscountType                  string    `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
+	Discount                      int64     `boil:"discount" json:"discount" toml:"discount" yaml:"discount"`
+	PackagedWithProductID         int64     `boil:"packaged_with_product_id" json:"packaged_with_product_id" toml:"packaged_with_product_id" yaml:"packaged_with_product_id"`
+	PackagedWithProductQuantity   int64     `boil:"packaged_with_product_quantity" json:"packaged_with_product_quantity" toml:"packaged_with_product_quantity" yaml:"packaged_with_product_quantity"`
+	PackagedWithProductQuantityFN string    `boil:"packaged_with_product_quantity_fn" json:"packaged_with_product_quantity_fn" toml:"packaged_with_product_quantity_fn" yaml:"packaged_with_product_quantity_fn"`
+	CreatedAt                     time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt                     time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
 	R *productComboDiscountR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L productComboDiscountL  `boil:"-" json:"-" toml:"-" yaml:"-"`
@@ -94,29 +93,6 @@ func (w whereHelperstring) NIN(slice []string) qm.QueryMod {
 	return qm.WhereNotIn(fmt.Sprintf("%s NOT IN ?", w.field), values...)
 }
 
-type whereHelpernull_Int64 struct{ field string }
-
-func (w whereHelpernull_Int64) EQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Int64) NEQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Int64) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-func (w whereHelpernull_Int64) LT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Int64) LTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Int64) GT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Int64) GTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
 var ProductComboDiscountWhere = struct {
 	ID                            whereHelperint64
 	Name                          whereHelperstring
@@ -124,7 +100,7 @@ var ProductComboDiscountWhere = struct {
 	ProductQuantity               whereHelperint64
 	ProductQuantityFN             whereHelperstring
 	DiscountType                  whereHelperstring
-	Discount                      whereHelpernull_Int64
+	Discount                      whereHelperint64
 	PackagedWithProductID         whereHelperint64
 	PackagedWithProductQuantity   whereHelperint64
 	PackagedWithProductQuantityFN whereHelperstring
@@ -137,7 +113,7 @@ var ProductComboDiscountWhere = struct {
 	ProductQuantity:               whereHelperint64{field: "\"product_combo_discount\".\"product_quantity\""},
 	ProductQuantityFN:             whereHelperstring{field: "\"product_combo_discount\".\"product_quantity_fn\""},
 	DiscountType:                  whereHelperstring{field: "\"product_combo_discount\".\"discount_type\""},
-	Discount:                      whereHelpernull_Int64{field: "\"product_combo_discount\".\"discount\""},
+	Discount:                      whereHelperint64{field: "\"product_combo_discount\".\"discount\""},
 	PackagedWithProductID:         whereHelperint64{field: "\"product_combo_discount\".\"packaged_with_product_id\""},
 	PackagedWithProductQuantity:   whereHelperint64{field: "\"product_combo_discount\".\"packaged_with_product_quantity\""},
 	PackagedWithProductQuantityFN: whereHelperstring{field: "\"product_combo_discount\".\"packaged_with_product_quantity_fn\""},
