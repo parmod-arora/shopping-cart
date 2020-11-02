@@ -1,0 +1,1 @@
+delete from products where name in ('Apples', 'Bananas', 'Pears', 'Oranges')

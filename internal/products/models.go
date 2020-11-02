@@ -1,6 +1,12 @@
 package products
 
-import "time"
+import (
+	"errors"
+	"net/http"
+	"time"
+
+	"cinemo.com/shoping-cart/internal/errorcode"
+)
 
 // Product representation in app
 type Product struct {
@@ -45,10 +51,10 @@ type Order struct {
 }
 
 type ComboPackage struct {
-	ID           int64
-	Name         string
-	CreatedAt    time.Time
-	UpdatedAt    time.Time
+	ID        int64
+	Name      string
+	CreatedAt time.Time
+	UpdatedAt time.Time
 }
 
 type ComboPackagedWith struct {
@@ -57,4 +63,13 @@ type ComboPackagedWith struct {
 	PackagedWithProductID int64
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
+}
+
+func statusAndErrorCodeForServiceError(err error) (int, string) {
+	if errors.As(err, &errorcode.ValidationError{}) {
+		return http.StatusBadRequest, errorcode.ErrorsInRequestData
+	} else if errors.As(err, &errorcode.DBError{}) {
+		return http.StatusInternalServerError, errorcode.DatabaseProcessError
+	}
+	return http.StatusInternalServerError, errorcode.InternalError
 }

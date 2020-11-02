@@ -3,6 +3,7 @@ package products
 import (
 	"net/http"
 
+	"cinemo.com/shoping-cart/framework/web/httpresponse"
 	"cinemo.com/shoping-cart/framework/web/middleware"
 	"github.com/gorilla/mux"
 )
@@ -16,9 +17,15 @@ func Handlers(r *mux.Router, service Service) {
 // ListProduct ListProduct
 func ListProduct(service Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
-		// get the book
-		// navigate to the page
-		w.Write([]byte("OKAY"))
-		w.WriteHeader(200)
+		ctx := r.Context()
+		// retrieve products from DB
+		products, err := service.RetrieveProducts(ctx)
+		if err != nil {
+			status, errCode := statusAndErrorCodeForServiceError(err)
+			httpresponse.ErrorResponseJSON(ctx, w, status, errCode, err.Error())
+			return
+		}
+
+		httpresponse.RespondJSON(w, http.StatusOK, products, nil)
 	}
 }

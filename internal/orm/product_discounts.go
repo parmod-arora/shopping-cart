@@ -25,11 +25,11 @@ import (
 // ProductDiscount is an object representing the database table.
 type ProductDiscount struct {
 	ID                 int64      `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name               string     `boil:"name" json:"name" toml:"name" yaml:"name"`
 	ProductID          int64      `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
-	Type               string     `boil:"type" json:"type" toml:"type" yaml:"type"`
-	MinQuantity        int64      `boil:"min_quantity" json:"min_quantity" toml:"min_quantity" yaml:"min_quantity"`
-	MaxQuantity        int64      `boil:"max_quantity" json:"max_quantity" toml:"max_quantity" yaml:"max_quantity"`
-	ComboPackageID     null.Int64 `boil:"combo_package_id" json:"combo_package_id,omitempty" toml:"combo_package_id" yaml:"combo_package_id,omitempty"`
+	DiscountType       string     `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
+	Quantity           int64      `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
+	QuantityFN         string     `boil:"quantity_fn" json:"quantity_fn" toml:"quantity_fn" yaml:"quantity_fn"`
 	Discount           null.Int64 `boil:"discount" json:"discount,omitempty" toml:"discount" yaml:"discount,omitempty"`
 	EffectiveStartDate time.Time  `boil:"effective_start_date" json:"effective_start_date" toml:"effective_start_date" yaml:"effective_start_date"`
 	EffectiveEndDate   null.Time  `boil:"effective_end_date" json:"effective_end_date,omitempty" toml:"effective_end_date" yaml:"effective_end_date,omitempty"`
@@ -42,11 +42,11 @@ type ProductDiscount struct {
 
 var ProductDiscountColumns = struct {
 	ID                 string
+	Name               string
 	ProductID          string
-	Type               string
-	MinQuantity        string
-	MaxQuantity        string
-	ComboPackageID     string
+	DiscountType       string
+	Quantity           string
+	QuantityFN         string
 	Discount           string
 	EffectiveStartDate string
 	EffectiveEndDate   string
@@ -54,11 +54,11 @@ var ProductDiscountColumns = struct {
 	UpdatedAt          string
 }{
 	ID:                 "id",
+	Name:               "name",
 	ProductID:          "product_id",
-	Type:               "type",
-	MinQuantity:        "min_quantity",
-	MaxQuantity:        "max_quantity",
-	ComboPackageID:     "combo_package_id",
+	DiscountType:       "discount_type",
+	Quantity:           "quantity",
+	QuantityFN:         "quantity_fn",
 	Discount:           "discount",
 	EffectiveStartDate: "effective_start_date",
 	EffectiveEndDate:   "effective_end_date",
@@ -67,29 +67,6 @@ var ProductDiscountColumns = struct {
 }
 
 // Generated where
-
-type whereHelpernull_Int64 struct{ field string }
-
-func (w whereHelpernull_Int64) EQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Int64) NEQ(x null.Int64) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Int64) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Int64) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-func (w whereHelpernull_Int64) LT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Int64) LTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Int64) GT(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Int64) GTE(x null.Int64) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
 
 type whereHelpernull_Time struct{ field string }
 
@@ -116,11 +93,11 @@ func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
 
 var ProductDiscountWhere = struct {
 	ID                 whereHelperint64
+	Name               whereHelperstring
 	ProductID          whereHelperint64
-	Type               whereHelperstring
-	MinQuantity        whereHelperint64
-	MaxQuantity        whereHelperint64
-	ComboPackageID     whereHelpernull_Int64
+	DiscountType       whereHelperstring
+	Quantity           whereHelperint64
+	QuantityFN         whereHelperstring
 	Discount           whereHelpernull_Int64
 	EffectiveStartDate whereHelpertime_Time
 	EffectiveEndDate   whereHelpernull_Time
@@ -128,11 +105,11 @@ var ProductDiscountWhere = struct {
 	UpdatedAt          whereHelpertime_Time
 }{
 	ID:                 whereHelperint64{field: "\"product_discounts\".\"id\""},
+	Name:               whereHelperstring{field: "\"product_discounts\".\"name\""},
 	ProductID:          whereHelperint64{field: "\"product_discounts\".\"product_id\""},
-	Type:               whereHelperstring{field: "\"product_discounts\".\"type\""},
-	MinQuantity:        whereHelperint64{field: "\"product_discounts\".\"min_quantity\""},
-	MaxQuantity:        whereHelperint64{field: "\"product_discounts\".\"max_quantity\""},
-	ComboPackageID:     whereHelpernull_Int64{field: "\"product_discounts\".\"combo_package_id\""},
+	DiscountType:       whereHelperstring{field: "\"product_discounts\".\"discount_type\""},
+	Quantity:           whereHelperint64{field: "\"product_discounts\".\"quantity\""},
+	QuantityFN:         whereHelperstring{field: "\"product_discounts\".\"quantity_fn\""},
 	Discount:           whereHelpernull_Int64{field: "\"product_discounts\".\"discount\""},
 	EffectiveStartDate: whereHelpertime_Time{field: "\"product_discounts\".\"effective_start_date\""},
 	EffectiveEndDate:   whereHelpernull_Time{field: "\"product_discounts\".\"effective_end_date\""},
@@ -142,17 +119,14 @@ var ProductDiscountWhere = struct {
 
 // ProductDiscountRels is where relationship names are stored.
 var ProductDiscountRels = struct {
-	ComboPackage string
-	Product      string
+	Product string
 }{
-	ComboPackage: "ComboPackage",
-	Product:      "Product",
+	Product: "Product",
 }
 
 // productDiscountR is where relationships are stored.
 type productDiscountR struct {
-	ComboPackage *ProductComboPackage `boil:"ComboPackage" json:"ComboPackage" toml:"ComboPackage" yaml:"ComboPackage"`
-	Product      *Product             `boil:"Product" json:"Product" toml:"Product" yaml:"Product"`
+	Product *Product `boil:"Product" json:"Product" toml:"Product" yaml:"Product"`
 }
 
 // NewStruct creates a new relationship struct
@@ -164,8 +138,8 @@ func (*productDiscountR) NewStruct() *productDiscountR {
 type productDiscountL struct{}
 
 var (
-	productDiscountAllColumns            = []string{"id", "product_id", "type", "min_quantity", "max_quantity", "combo_package_id", "discount", "effective_start_date", "effective_end_date", "created_at", "updated_at"}
-	productDiscountColumnsWithoutDefault = []string{"product_id", "type", "min_quantity", "max_quantity", "combo_package_id", "discount", "effective_start_date", "effective_end_date"}
+	productDiscountAllColumns            = []string{"id", "name", "product_id", "discount_type", "quantity", "quantity_fn", "discount", "effective_start_date", "effective_end_date", "created_at", "updated_at"}
+	productDiscountColumnsWithoutDefault = []string{"name", "product_id", "discount_type", "quantity", "quantity_fn", "discount", "effective_start_date", "effective_end_date"}
 	productDiscountColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
 	productDiscountPrimaryKeyColumns     = []string{"id"}
 )
@@ -445,20 +419,6 @@ func (q productDiscountQuery) Exists(ctx context.Context, exec boil.ContextExecu
 	return count > 0, nil
 }
 
-// ComboPackage pointed to by the foreign key.
-func (o *ProductDiscount) ComboPackage(mods ...qm.QueryMod) productComboPackageQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.ComboPackageID),
-	}
-
-	queryMods = append(queryMods, mods...)
-
-	query := ProductComboPackages(queryMods...)
-	queries.SetFrom(query.Query, "\"product_combo_packages\"")
-
-	return query
-}
-
 // Product pointed to by the foreign key.
 func (o *ProductDiscount) Product(mods ...qm.QueryMod) productQuery {
 	queryMods := []qm.QueryMod{
@@ -471,114 +431,6 @@ func (o *ProductDiscount) Product(mods ...qm.QueryMod) productQuery {
 	queries.SetFrom(query.Query, "\"products\"")
 
 	return query
-}
-
-// LoadComboPackage allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (productDiscountL) LoadComboPackage(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProductDiscount interface{}, mods queries.Applicator) error {
-	var slice []*ProductDiscount
-	var object *ProductDiscount
-
-	if singular {
-		object = maybeProductDiscount.(*ProductDiscount)
-	} else {
-		slice = *maybeProductDiscount.(*[]*ProductDiscount)
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &productDiscountR{}
-		}
-		if !queries.IsNil(object.ComboPackageID) {
-			args = append(args, object.ComboPackageID)
-		}
-
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &productDiscountR{}
-			}
-
-			for _, a := range args {
-				if queries.Equal(a, obj.ComboPackageID) {
-					continue Outer
-				}
-			}
-
-			if !queries.IsNil(obj.ComboPackageID) {
-				args = append(args, obj.ComboPackageID)
-			}
-
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`product_combo_packages`),
-		qm.WhereIn(`product_combo_packages.id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load ProductComboPackage")
-	}
-
-	var resultSlice []*ProductComboPackage
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice ProductComboPackage")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for product_combo_packages")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_combo_packages")
-	}
-
-	if len(productDiscountAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
-	if singular {
-		foreign := resultSlice[0]
-		object.R.ComboPackage = foreign
-		if foreign.R == nil {
-			foreign.R = &productComboPackageR{}
-		}
-		foreign.R.ComboPackageProductDiscounts = append(foreign.R.ComboPackageProductDiscounts, object)
-		return nil
-	}
-
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if queries.Equal(local.ComboPackageID, foreign.ID) {
-				local.R.ComboPackage = foreign
-				if foreign.R == nil {
-					foreign.R = &productComboPackageR{}
-				}
-				foreign.R.ComboPackageProductDiscounts = append(foreign.R.ComboPackageProductDiscounts, local)
-				break
-			}
-		}
-	}
-
-	return nil
 }
 
 // LoadProduct allows an eager lookup of values, cached into the
@@ -682,86 +534,6 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 		}
 	}
 
-	return nil
-}
-
-// SetComboPackage of the productDiscount to the related item.
-// Sets o.R.ComboPackage to related.
-// Adds o to related.R.ComboPackageProductDiscounts.
-func (o *ProductDiscount) SetComboPackage(ctx context.Context, exec boil.ContextExecutor, insert bool, related *ProductComboPackage) error {
-	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
-		}
-	}
-
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"product_discounts\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"combo_package_id"}),
-		strmangle.WhereClause("\"", "\"", 2, productDiscountPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	queries.Assign(&o.ComboPackageID, related.ID)
-	if o.R == nil {
-		o.R = &productDiscountR{
-			ComboPackage: related,
-		}
-	} else {
-		o.R.ComboPackage = related
-	}
-
-	if related.R == nil {
-		related.R = &productComboPackageR{
-			ComboPackageProductDiscounts: ProductDiscountSlice{o},
-		}
-	} else {
-		related.R.ComboPackageProductDiscounts = append(related.R.ComboPackageProductDiscounts, o)
-	}
-
-	return nil
-}
-
-// RemoveComboPackage relationship.
-// Sets o.R.ComboPackage to nil.
-// Removes o from all passed in related items' relationships struct (Optional).
-func (o *ProductDiscount) RemoveComboPackage(ctx context.Context, exec boil.ContextExecutor, related *ProductComboPackage) error {
-	var err error
-
-	queries.SetScanner(&o.ComboPackageID, nil)
-	if _, err = o.Update(ctx, exec, boil.Whitelist("combo_package_id")); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	if o.R != nil {
-		o.R.ComboPackage = nil
-	}
-	if related == nil || related.R == nil {
-		return nil
-	}
-
-	for i, ri := range related.R.ComboPackageProductDiscounts {
-		if queries.Equal(o.ComboPackageID, ri.ComboPackageID) {
-			continue
-		}
-
-		ln := len(related.R.ComboPackageProductDiscounts)
-		if ln > 1 && i < ln-1 {
-			related.R.ComboPackageProductDiscounts[i] = related.R.ComboPackageProductDiscounts[ln-1]
-		}
-		related.R.ComboPackageProductDiscounts = related.R.ComboPackageProductDiscounts[:ln-1]
-		break
-	}
 	return nil
 }
 

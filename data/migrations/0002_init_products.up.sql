@@ -23,29 +23,28 @@ CREATE TABLE orders (
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
-CREATE TABLE product_combo_packages ( 
+CREATE TABLE product_combo_discount ( 
     id BIGSERIAL PRIMARY KEY,
     name text NOT NULL,
-    created_at timestamp with time zone NOT NULL DEFAULT now(),
-    updated_at timestamp with time zone NOT NULL DEFAULT now()
-);
-
-CREATE TABLE product_combo_packaged_with ( 
-    id BIGSERIAL PRIMARY KEY,
-    product_combo_package_id BIGINT NOT NULL,
     product_id bigint NOT NULL REFERENCES products(id),
+    product_quantity bigint NOT NULL,
+    product_quantity_fn text NOT NULL,
+    discount_type text NOT NULL,
+    discount bigint,
     packaged_with_product_id bigint NOT NULL REFERENCES products(id),
+    packaged_with_product_quantity bigint NOT NULL,
+    packaged_with_product_quantity_fn text NOT NULL,
     created_at timestamp with time zone NOT NULL DEFAULT now(),
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
 CREATE TABLE product_discounts ( 
     id BIGSERIAL PRIMARY KEY,
+    name text NOT NULL,
     product_id bigint NOT NULL REFERENCES products(id),
-    type text NOT NULL,
-    min_quantity bigint NOT NULL,
-    max_quantity bigint NOT NULL,
-    combo_package_id bigint REFERENCES product_combo_packages (id),
+    discount_type text NOT NULL,
+    quantity bigint NOT NULL,
+    quantity_fn text NOT NULL,
     discount bigint,
     effective_start_date timestamp with time zone NOT NULL,
     effective_end_date timestamp with time zone,

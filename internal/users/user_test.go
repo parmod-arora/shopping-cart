@@ -119,6 +119,7 @@ func Test_userService_CreateUser(t *testing.T) {
 
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
+			testutil.LoadFixture(dbConnPool, tt.fixture)
 			s := NewUserService(dbConnPool)
 			got, err := s.CreateUser(tt.args.ctx, tt.args.username, tt.args.password, tt.args.firstName, tt.args.lastName)
 			if tt.wantErr != nil {
