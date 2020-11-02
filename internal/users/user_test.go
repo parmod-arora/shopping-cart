@@ -4,8 +4,8 @@ import (
 	"context"
 	"testing"
 
-	"cinemo.com/shoping-cart/internal/testutil"
 	"cinemo.com/shoping-cart/pkg/pointer"
+	"cinemo.com/shoping-cart/pkg/testutil"
 	"cinemo.com/shoping-cart/pkg/trace"
 	"github.com/friendsofgo/errors"
 	"github.com/google/go-cmp/cmp"

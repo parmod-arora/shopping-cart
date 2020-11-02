@@ -4,22 +4,21 @@ import "time"
 
 // Product representation in app
 type Product struct {
-	ID        int
+	ID        int64
 	Name      string
 	Details   string
-	Active    bool
-	Amount    int
+	Amount    int64
 	CreatedAt time.Time
 	UpdatedAt time.Time
 }
 
 type ProductDiscount struct {
-	ID             int
-	ProductID      int
+	ID             int64
+	ProductID      int64
 	MinQuantity    int
 	MaxQuantity    int
 	PriceType      PriceType
-	ComboPackageID int
+	ComboPackageID int64
 	Discount       int
 	Active         bool
 	CreatedAt      time.Time
@@ -28,8 +27,8 @@ type ProductDiscount struct {
 
 // Stock representation in app
 type Stock struct {
-	ID        int
-	ProductID int
+	ID        int64
+	ProductID int64
 	Quantity  int
 	CreatedAt time.Time
 	UpdatedAt time.Time
@@ -37,7 +36,7 @@ type Stock struct {
 
 // Order representation in app
 type Order struct {
-	ID        int
+	ID        int64
 	Name      string
 	Details   string
 	Amount    int
@@ -46,17 +45,16 @@ type Order struct {
 }
 
 type ComboPackage struct {
-	ID           int
+	ID           int64
 	Name         string
-	PackagedWith []ComboPackagedWith
 	CreatedAt    time.Time
 	UpdatedAt    time.Time
 }
 
 type ComboPackagedWith struct {
-	ID                    int
-	ProductID             int
-	PackagedWithProductID int
+	ID                    int64
+	ProductID             int64
+	PackagedWithProductID int64
 	CreatedAt             time.Time
 	UpdatedAt             time.Time
 }

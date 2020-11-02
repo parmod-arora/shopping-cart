@@ -13,11 +13,12 @@ import (
 
 // Handlers handles users routes
 func Handlers(r *mux.Router, service Service) {
-	r.HandleFunc("/login", loginHandlers(service))
-	r.HandleFunc("/signup", SignUpHandler(service))
+	r.Path("/login").Methods(http.MethodPost).HandlerFunc(LoginHandlers(service))
+	r.Path("/signup").Methods(http.MethodPost).HandlerFunc(SignUpHandler(service))
 }
 
-func loginHandlers(service Service) func(http.ResponseWriter, *http.Request) {
+// LoginHandlers handles login functionality
+func LoginHandlers(service Service) func(http.ResponseWriter, *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 

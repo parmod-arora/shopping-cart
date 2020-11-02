@@ -71,6 +71,7 @@ migrate:
 	sh -c 'sleep 5;./migrate -path /migrations -database $$DATABASE_URL up'
 
 # dbdrop executes db migration DROP scripts on configured database (i.e. DATABASE_URL)
+dbdrop: MOUNT_VOLUME =  $(if $(strip $(CONTAINER_SUFFIX)),,-v $(shell pwd)/data/migrations:/migrations)
 dbdrop:
 	$(COMPOSE) run --rm $(MOUNT_VOLUME) db-migrate \
 	sh -c './migrate -path /migrations -database $$DATABASE_URL drop'

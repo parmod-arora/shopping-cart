@@ -8,6 +8,7 @@ import (
 	"cinemo.com/shoping-cart/framework/appenv"
 	"cinemo.com/shoping-cart/framework/db"
 	"cinemo.com/shoping-cart/framework/web/server"
+	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/internal/users"
 	"cinemo.com/shoping-cart/pkg/projectpath"
 	"cinemo.com/shoping-cart/pkg/yaml"
@@ -33,7 +34,8 @@ func main() {
 
 	// prepare application dependencies
 	app := application.App{
-		UserService: users.NewUserService(dbConnPool),
+		UserService:    users.NewUserService(dbConnPool),
+		ProductService: products.NewProductService(dbConnPool),
 	}
 
 	// start http server
