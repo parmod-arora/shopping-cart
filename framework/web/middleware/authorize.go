@@ -4,8 +4,8 @@ import (
 	"net/http"
 
 	"cinemo.com/shoping-cart/framework/web/httpresponse"
-	"cinemo.com/shoping-cart/internal/auth"
 	"cinemo.com/shoping-cart/internal/errorcode"
+	"cinemo.com/shoping-cart/pkg/auth"
 	"github.com/SermoDigital/jose/jws"
 )
 

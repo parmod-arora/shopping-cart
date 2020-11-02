@@ -19,9 +19,9 @@ func main() {
 	logrus.Infof("Inside main")
 	// ideally this will be injected by some screct service i.e kubernates-secrect or vault
 	// load jwt cert config
-	vars, err := yaml.FetchEnvVarsFromYaml(projectpath.Root + "jwt-cert.yml")
+	vars, err := yaml.FetchEnvVarsFromYaml(projectpath.Root + "/jwt-cert.yml")
 	if err != nil {
-		logrus.Fatalf("Error while loading jwt cert")
+		logrus.Fatalf("Error while loading jwt cert %v", err.Error())
 	}
 	yaml.SetEnvVars(vars)
 

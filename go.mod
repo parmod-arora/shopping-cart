@@ -42,5 +42,6 @@ require (
 	gopkg.in/check.v1 v1.0.0-20200902074654-038fdea0a05b // indirect
 	gopkg.in/yaml.v2 v2.2.4
 	gopkg.in/yaml.v3 v3.0.0-20200615113413-eeeca48fe776 // indirect
+	gotest.tools v2.2.0+incompatible // indirect
 	gotest.tools/v3 v3.0.2 // indirect
 )
