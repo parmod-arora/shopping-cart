@@ -1,12 +1,13 @@
-package orders_test
+package cart_test
 
 import (
 	"context"
+
 	"database/sql"
 	"testing"
 
+	"cinemo.com/shoping-cart/internal/cart"
 	"cinemo.com/shoping-cart/internal/discount"
-	"cinemo.com/shoping-cart/internal/orders"
 	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/pkg/testutil"
 	"cinemo.com/shoping-cart/pkg/trace"
@@ -42,7 +43,7 @@ func Test_orderService_GetUserCart(t *testing.T) {
 		fields  fields
 		args    args
 		wantErr bool
-		want    *orders.UserCart
+		want    *cart.UserCart
 	}{
 		{
 			name:    "test sql query",
@@ -54,10 +55,10 @@ func Test_orderService_GetUserCart(t *testing.T) {
 			fields: fields{
 				DB: dbConnPool,
 			},
-			want: &orders.UserCart{
-				LineItems: []orders.LineItem{
+			want: &cart.UserCart{
+				LineItems: []cart.LineItem{
 					{
-						CartItem: orders.CartItem{
+						CartItem: cart.CartItem{
 							ID:       1,
 							Product:  products.Product{ID: 1, Name: "Apples", Details: "Apples Details", Amount: 1000},
 							Quantity: 10,
@@ -79,7 +80,7 @@ func Test_orderService_GetUserCart(t *testing.T) {
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
 			testutil.LoadFixture(tt.fields.DB, tt.fixture)
-			s := orders.NewOrderService(tt.fields.DB, discount.NewDiscountService(tt.fields.DB))
+			s := cart.NewCartService(tt.fields.DB, discount.NewDiscountService(tt.fields.DB))
 			got, err := s.GetUserCart(tt.args.ctx, tt.args.userID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("orderService.GetUserCart() error = %v, wantErr %v", err, tt.wantErr)

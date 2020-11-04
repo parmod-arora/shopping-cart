@@ -1,4 +1,4 @@
-package orders
+package cart
 
 import (
 	"context"
@@ -22,14 +22,14 @@ type Service interface {
 	AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error)
 }
 
-type orderService struct {
+type cartService struct {
 	DB              *sql.DB
 	DiscountService discount.Service
 }
 
-// NewOrderService Create New OrderService
-func NewOrderService(db *sql.DB, service discount.Service) Service {
-	return orderService{
+// NewCartService Create New cart service
+func NewCartService(db *sql.DB, service discount.Service) Service {
+	return cartService{
 		DB:              db,
 		DiscountService: service,
 	}
@@ -54,7 +54,7 @@ type CartItem struct {
 }
 
 // AddItemCart add product in cart by user
-func (s orderService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
+func (s cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -94,7 +94,7 @@ func itemQuantityMatchesWithDiscountQuantity(discountQuantity discount.Quantity,
 	return false
 }
 
-func (s orderService) GetUserCart(ctx context.Context, userID int64) (*UserCart, error) {
+func (s cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, error) {
 	cart, err := orm.Carts(
 		qm.Load(qm.Rels(orm.CartRels.CartItems, orm.CartItemRels.Product)),
 		qm.Where(orm.CartColumns.UserID+"=?", userID),
