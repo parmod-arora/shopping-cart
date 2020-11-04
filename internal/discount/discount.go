@@ -80,6 +80,7 @@ func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productI
 	if err != nil {
 		return nil, err
 	}
+
 	// prepare product discount
 	for _, discount := range discounts {
 		productDiscount := ProductDiscount{
@@ -103,6 +104,7 @@ func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productI
 		return nil, err
 	}
 
+	// prepare combo discount
 	comboDiscountMap := make(map[int64]ComboDiscountProduct)
 	for _, discount := range comboDiscounts {
 		// reverse entry

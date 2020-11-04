@@ -1,0 +1,26 @@
+{
+  "apple": {
+    "product_discounts": [{
+      "name": "10% Discount on 7+ Apples",
+      "quantity": {
+        "type": "eq|lte|gte",
+        "value": 7
+      },
+      "percentage_discount": 10
+    }],
+    "combo_discount": [{
+      "name": "Pears and Banana offer",
+      "pears": {
+        "quantity": {
+          "type": "eq|lte|gte",
+          "value": 2
+        },
+        "self_quantity": {
+          "type": "eq|lte|gte",
+          "value": 1
+        },
+        "percentage_discount": 10
+      }
+    }]
+  }
+}

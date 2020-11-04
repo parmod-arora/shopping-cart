@@ -25,6 +25,8 @@ import (
 type Order struct {
 	ID        int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
 	UserID    int64     `boil:"user_id" json:"user_id" toml:"user_id" yaml:"user_id"`
+	ProductID int64     `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
+	Quantity  int64     `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
@@ -35,11 +37,15 @@ type Order struct {
 var OrderColumns = struct {
 	ID        string
 	UserID    string
+	ProductID string
+	Quantity  string
 	CreatedAt string
 	UpdatedAt string
 }{
 	ID:        "id",
 	UserID:    "user_id",
+	ProductID: "product_id",
+	Quantity:  "quantity",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 }
@@ -93,25 +99,32 @@ func (w whereHelpertime_Time) GTE(x time.Time) qm.QueryMod {
 var OrderWhere = struct {
 	ID        whereHelperint64
 	UserID    whereHelperint64
+	ProductID whereHelperint64
+	Quantity  whereHelperint64
 	CreatedAt whereHelpertime_Time
 	UpdatedAt whereHelpertime_Time
 }{
 	ID:        whereHelperint64{field: "\"orders\".\"id\""},
 	UserID:    whereHelperint64{field: "\"orders\".\"user_id\""},
+	ProductID: whereHelperint64{field: "\"orders\".\"product_id\""},
+	Quantity:  whereHelperint64{field: "\"orders\".\"quantity\""},
 	CreatedAt: whereHelpertime_Time{field: "\"orders\".\"created_at\""},
 	UpdatedAt: whereHelpertime_Time{field: "\"orders\".\"updated_at\""},
 }
 
 // OrderRels is where relationship names are stored.
 var OrderRels = struct {
-	User string
+	Product string
+	User    string
 }{
-	User: "User",
+	Product: "Product",
+	User:    "User",
 }
 
 // orderR is where relationships are stored.
 type orderR struct {
-	User *User `boil:"User" json:"User" toml:"User" yaml:"User"`
+	Product *Product `boil:"Product" json:"Product" toml:"Product" yaml:"Product"`
+	User    *User    `boil:"User" json:"User" toml:"User" yaml:"User"`
 }
 
 // NewStruct creates a new relationship struct
@@ -123,8 +136,8 @@ func (*orderR) NewStruct() *orderR {
 type orderL struct{}
 
 var (
-	orderAllColumns            = []string{"id", "user_id", "created_at", "updated_at"}
-	orderColumnsWithoutDefault = []string{"user_id"}
+	orderAllColumns            = []string{"id", "user_id", "product_id", "quantity", "created_at", "updated_at"}
+	orderColumnsWithoutDefault = []string{"user_id", "product_id", "quantity"}
 	orderColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
 	orderPrimaryKeyColumns     = []string{"id"}
 )
@@ -404,6 +417,20 @@ func (q orderQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool
 	return count > 0, nil
 }
 
+// Product pointed to by the foreign key.
+func (o *Order) Product(mods ...qm.QueryMod) productQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ProductID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	query := Products(queryMods...)
+	queries.SetFrom(query.Query, "\"products\"")
+
+	return query
+}
+
 // User pointed to by the foreign key.
 func (o *Order) User(mods ...qm.QueryMod) userQuery {
 	queryMods := []qm.QueryMod{
@@ -416,6 +443,110 @@ func (o *Order) User(mods ...qm.QueryMod) userQuery {
 	queries.SetFrom(query.Query, "\"users\"")
 
 	return query
+}
+
+// LoadProduct allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (orderL) LoadProduct(ctx context.Context, e boil.ContextExecutor, singular bool, maybeOrder interface{}, mods queries.Applicator) error {
+	var slice []*Order
+	var object *Order
+
+	if singular {
+		object = maybeOrder.(*Order)
+	} else {
+		slice = *maybeOrder.(*[]*Order)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &orderR{}
+		}
+		args = append(args, object.ProductID)
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &orderR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ProductID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ProductID)
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`products`),
+		qm.WhereIn(`products.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Product")
+	}
+
+	var resultSlice []*Product
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Product")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for products")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for products")
+	}
+
+	if len(orderAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Product = foreign
+		if foreign.R == nil {
+			foreign.R = &productR{}
+		}
+		foreign.R.Orders = append(foreign.R.Orders, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ProductID == foreign.ID {
+				local.R.Product = foreign
+				if foreign.R == nil {
+					foreign.R = &productR{}
+				}
+				foreign.R.Orders = append(foreign.R.Orders, local)
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadUser allows an eager lookup of values, cached into the
@@ -517,6 +648,53 @@ func (orderL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular boo
 				break
 			}
 		}
+	}
+
+	return nil
+}
+
+// SetProduct of the order to the related item.
+// Sets o.R.Product to related.
+// Adds o to related.R.Orders.
+func (o *Order) SetProduct(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Product) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"orders\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
+		strmangle.WhereClause("\"", "\"", 2, orderPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.ProductID = related.ID
+	if o.R == nil {
+		o.R = &orderR{
+			Product: related,
+		}
+	} else {
+		o.R.Product = related
+	}
+
+	if related.R == nil {
+		related.R = &productR{
+			Orders: OrderSlice{o},
+		}
+	} else {
+		related.R.Orders = append(related.R.Orders, o)
 	}
 
 	return nil

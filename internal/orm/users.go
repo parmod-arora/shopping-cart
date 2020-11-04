@@ -99,14 +99,14 @@ var UserWhere = struct {
 
 // UserRels is where relationship names are stored.
 var UserRels = struct {
-	Orders string
+	Carts string
 }{
-	Orders: "Orders",
+	Carts: "Carts",
 }
 
 // userR is where relationships are stored.
 type userR struct {
-	Orders OrderSlice `boil:"Orders" json:"Orders" toml:"Orders" yaml:"Orders"`
+	Carts CartSlice `boil:"Carts" json:"Carts" toml:"Carts" yaml:"Carts"`
 }
 
 // NewStruct creates a new relationship struct
@@ -399,30 +399,30 @@ func (q userQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bool,
 	return count > 0, nil
 }
 
-// Orders retrieves all the order's Orders with an executor.
-func (o *User) Orders(mods ...qm.QueryMod) orderQuery {
+// Carts retrieves all the cart's Carts with an executor.
+func (o *User) Carts(mods ...qm.QueryMod) cartQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"orders\".\"user_id\"=?", o.ID),
+		qm.Where("\"carts\".\"user_id\"=?", o.ID),
 	)
 
-	query := Orders(queryMods...)
-	queries.SetFrom(query.Query, "\"orders\"")
+	query := Carts(queryMods...)
+	queries.SetFrom(query.Query, "\"carts\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"\"orders\".*"})
+		queries.SetSelect(query.Query, []string{"\"carts\".*"})
 	}
 
 	return query
 }
 
-// LoadOrders allows an eager lookup of values, cached into the
+// LoadCarts allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
+func (userL) LoadCarts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeUser interface{}, mods queries.Applicator) error {
 	var slice []*User
 	var object *User
 
@@ -460,8 +460,8 @@ func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bo
 	}
 
 	query := NewQuery(
-		qm.From(`orders`),
-		qm.WhereIn(`orders.user_id in ?`, args...),
+		qm.From(`carts`),
+		qm.WhereIn(`carts.user_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -469,22 +469,22 @@ func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bo
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load orders")
+		return errors.Wrap(err, "failed to eager load carts")
 	}
 
-	var resultSlice []*Order
+	var resultSlice []*Cart
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice orders")
+		return errors.Wrap(err, "failed to bind eager loaded slice carts")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on orders")
+		return errors.Wrap(err, "failed to close results in eager load on carts")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for orders")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for carts")
 	}
 
-	if len(orderAfterSelectHooks) != 0 {
+	if len(cartAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -492,10 +492,10 @@ func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bo
 		}
 	}
 	if singular {
-		object.R.Orders = resultSlice
+		object.R.Carts = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &orderR{}
+				foreign.R = &cartR{}
 			}
 			foreign.R.User = object
 		}
@@ -505,9 +505,9 @@ func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bo
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.UserID {
-				local.R.Orders = append(local.R.Orders, foreign)
+				local.R.Carts = append(local.R.Carts, foreign)
 				if foreign.R == nil {
-					foreign.R = &orderR{}
+					foreign.R = &cartR{}
 				}
 				foreign.R.User = local
 				break
@@ -518,11 +518,11 @@ func (userL) LoadOrders(ctx context.Context, e boil.ContextExecutor, singular bo
 	return nil
 }
 
-// AddOrders adds the given related objects to the existing relationships
+// AddCarts adds the given related objects to the existing relationships
 // of the user, optionally inserting them as new records.
-// Appends related to o.R.Orders.
+// Appends related to o.R.Carts.
 // Sets related.R.User appropriately.
-func (o *User) AddOrders(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Order) error {
+func (o *User) AddCarts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*Cart) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -532,9 +532,9 @@ func (o *User) AddOrders(ctx context.Context, exec boil.ContextExecutor, insert 
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"orders\" SET %s WHERE %s",
+				"UPDATE \"carts\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"user_id"}),
-				strmangle.WhereClause("\"", "\"", 2, orderPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, cartPrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -553,15 +553,15 @@ func (o *User) AddOrders(ctx context.Context, exec boil.ContextExecutor, insert 
 
 	if o.R == nil {
 		o.R = &userR{
-			Orders: related,
+			Carts: related,
 		}
 	} else {
-		o.R.Orders = append(o.R.Orders, related...)
+		o.R.Carts = append(o.R.Carts, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &orderR{
+			rel.R = &cartR{
 				User: o,
 			}
 		} else {

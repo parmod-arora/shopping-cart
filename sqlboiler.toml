@@ -8,5 +8,5 @@ output="internal/orm"
   user="shopingcart"
   pass=""
   sslmode="disable"
-  whitelist=["users", "products", "stocks", "product_discounts", "product_combo_discount", "orders"]
+  whitelist=["users", "products", "stocks", "product_discounts", "product_combo_discount", "carts", "cart_items"]
   schema="public"
