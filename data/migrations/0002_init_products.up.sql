@@ -23,13 +23,19 @@ CREATE TABLE carts (
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+CREATE INDEX carts_user_id_idx ON carts(user_id);
 
 CREATE TABLE cart_items (
     id BIGSERIAL PRIMARY KEY,
     cart_id BIGINT NOT NULL REFERENCES carts(id),
+    product_id BIGINT NOT NULL REFERENCES products(id),
+    quantity BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
+
+CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
+
 
 CREATE TABLE product_combo_discount ( 
     id BIGSERIAL PRIMARY KEY,

@@ -25,6 +25,8 @@ import (
 type CartItem struct {
 	ID        int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
 	CartID    int64     `boil:"cart_id" json:"cart_id" toml:"cart_id" yaml:"cart_id"`
+	ProductID int64     `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
+	Quantity  int64     `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
 	CreatedAt time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
 	UpdatedAt time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
@@ -35,11 +37,15 @@ type CartItem struct {
 var CartItemColumns = struct {
 	ID        string
 	CartID    string
+	ProductID string
+	Quantity  string
 	CreatedAt string
 	UpdatedAt string
 }{
 	ID:        "id",
 	CartID:    "cart_id",
+	ProductID: "product_id",
+	Quantity:  "quantity",
 	CreatedAt: "created_at",
 	UpdatedAt: "updated_at",
 }
@@ -93,25 +99,32 @@ func (w whereHelpertime_Time) GTE(x time.Time) qm.QueryMod {
 var CartItemWhere = struct {
 	ID        whereHelperint64
 	CartID    whereHelperint64
+	ProductID whereHelperint64
+	Quantity  whereHelperint64
 	CreatedAt whereHelpertime_Time
 	UpdatedAt whereHelpertime_Time
 }{
 	ID:        whereHelperint64{field: "\"cart_items\".\"id\""},
 	CartID:    whereHelperint64{field: "\"cart_items\".\"cart_id\""},
+	ProductID: whereHelperint64{field: "\"cart_items\".\"product_id\""},
+	Quantity:  whereHelperint64{field: "\"cart_items\".\"quantity\""},
 	CreatedAt: whereHelpertime_Time{field: "\"cart_items\".\"created_at\""},
 	UpdatedAt: whereHelpertime_Time{field: "\"cart_items\".\"updated_at\""},
 }
 
 // CartItemRels is where relationship names are stored.
 var CartItemRels = struct {
-	Cart string
+	Cart    string
+	Product string
 }{
-	Cart: "Cart",
+	Cart:    "Cart",
+	Product: "Product",
 }
 
 // cartItemR is where relationships are stored.
 type cartItemR struct {
-	Cart *Cart `boil:"Cart" json:"Cart" toml:"Cart" yaml:"Cart"`
+	Cart    *Cart    `boil:"Cart" json:"Cart" toml:"Cart" yaml:"Cart"`
+	Product *Product `boil:"Product" json:"Product" toml:"Product" yaml:"Product"`
 }
 
 // NewStruct creates a new relationship struct
@@ -123,8 +136,8 @@ func (*cartItemR) NewStruct() *cartItemR {
 type cartItemL struct{}
 
 var (
-	cartItemAllColumns            = []string{"id", "cart_id", "created_at", "updated_at"}
-	cartItemColumnsWithoutDefault = []string{"cart_id"}
+	cartItemAllColumns            = []string{"id", "cart_id", "product_id", "quantity", "created_at", "updated_at"}
+	cartItemColumnsWithoutDefault = []string{"cart_id", "product_id", "quantity"}
 	cartItemColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
 	cartItemPrimaryKeyColumns     = []string{"id"}
 )
@@ -418,6 +431,20 @@ func (o *CartItem) Cart(mods ...qm.QueryMod) cartQuery {
 	return query
 }
 
+// Product pointed to by the foreign key.
+func (o *CartItem) Product(mods ...qm.QueryMod) productQuery {
+	queryMods := []qm.QueryMod{
+		qm.Where("\"id\" = ?", o.ProductID),
+	}
+
+	queryMods = append(queryMods, mods...)
+
+	query := Products(queryMods...)
+	queries.SetFrom(query.Query, "\"products\"")
+
+	return query
+}
+
 // LoadCart allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for an N-1 relationship.
 func (cartItemL) LoadCart(ctx context.Context, e boil.ContextExecutor, singular bool, maybeCartItem interface{}, mods queries.Applicator) error {
@@ -522,6 +549,110 @@ func (cartItemL) LoadCart(ctx context.Context, e boil.ContextExecutor, singular 
 	return nil
 }
 
+// LoadProduct allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for an N-1 relationship.
+func (cartItemL) LoadProduct(ctx context.Context, e boil.ContextExecutor, singular bool, maybeCartItem interface{}, mods queries.Applicator) error {
+	var slice []*CartItem
+	var object *CartItem
+
+	if singular {
+		object = maybeCartItem.(*CartItem)
+	} else {
+		slice = *maybeCartItem.(*[]*CartItem)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &cartItemR{}
+		}
+		args = append(args, object.ProductID)
+
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &cartItemR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ProductID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ProductID)
+
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`products`),
+		qm.WhereIn(`products.id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load Product")
+	}
+
+	var resultSlice []*Product
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice Product")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results of eager load for products")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for products")
+	}
+
+	if len(cartItemAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+
+	if len(resultSlice) == 0 {
+		return nil
+	}
+
+	if singular {
+		foreign := resultSlice[0]
+		object.R.Product = foreign
+		if foreign.R == nil {
+			foreign.R = &productR{}
+		}
+		foreign.R.CartItems = append(foreign.R.CartItems, object)
+		return nil
+	}
+
+	for _, local := range slice {
+		for _, foreign := range resultSlice {
+			if local.ProductID == foreign.ID {
+				local.R.Product = foreign
+				if foreign.R == nil {
+					foreign.R = &productR{}
+				}
+				foreign.R.CartItems = append(foreign.R.CartItems, local)
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // SetCart of the cartItem to the related item.
 // Sets o.R.Cart to related.
 // Adds o to related.R.CartItems.
@@ -560,6 +691,53 @@ func (o *CartItem) SetCart(ctx context.Context, exec boil.ContextExecutor, inser
 
 	if related.R == nil {
 		related.R = &cartR{
+			CartItems: CartItemSlice{o},
+		}
+	} else {
+		related.R.CartItems = append(related.R.CartItems, o)
+	}
+
+	return nil
+}
+
+// SetProduct of the cartItem to the related item.
+// Sets o.R.Product to related.
+// Adds o to related.R.CartItems.
+func (o *CartItem) SetProduct(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Product) error {
+	var err error
+	if insert {
+		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
+			return errors.Wrap(err, "failed to insert into foreign table")
+		}
+	}
+
+	updateQuery := fmt.Sprintf(
+		"UPDATE \"cart_items\" SET %s WHERE %s",
+		strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
+		strmangle.WhereClause("\"", "\"", 2, cartItemPrimaryKeyColumns),
+	)
+	values := []interface{}{related.ID, o.ID}
+
+	if boil.IsDebug(ctx) {
+		writer := boil.DebugWriterFrom(ctx)
+		fmt.Fprintln(writer, updateQuery)
+		fmt.Fprintln(writer, values)
+	}
+	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+		return errors.Wrap(err, "failed to update local table")
+	}
+
+	o.ProductID = related.ID
+	if o.R == nil {
+		o.R = &cartItemR{
+			Product: related,
+		}
+	} else {
+		o.R.Product = related
+	}
+
+	if related.R == nil {
+		related.R = &productR{
 			CartItems: CartItemSlice{o},
 		}
 	} else {

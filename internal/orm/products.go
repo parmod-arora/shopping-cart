@@ -75,11 +75,13 @@ var ProductWhere = struct {
 
 // ProductRels is where relationship names are stored.
 var ProductRels = struct {
+	CartItems                                string
 	PackagedWithProductProductComboDiscounts string
 	ProductComboDiscounts                    string
 	ProductDiscounts                         string
 	Stocks                                   string
 }{
+	CartItems:                                "CartItems",
 	PackagedWithProductProductComboDiscounts: "PackagedWithProductProductComboDiscounts",
 	ProductComboDiscounts:                    "ProductComboDiscounts",
 	ProductDiscounts:                         "ProductDiscounts",
@@ -88,6 +90,7 @@ var ProductRels = struct {
 
 // productR is where relationships are stored.
 type productR struct {
+	CartItems                                CartItemSlice             `boil:"CartItems" json:"CartItems" toml:"CartItems" yaml:"CartItems"`
 	PackagedWithProductProductComboDiscounts ProductComboDiscountSlice `boil:"PackagedWithProductProductComboDiscounts" json:"PackagedWithProductProductComboDiscounts" toml:"PackagedWithProductProductComboDiscounts" yaml:"PackagedWithProductProductComboDiscounts"`
 	ProductComboDiscounts                    ProductComboDiscountSlice `boil:"ProductComboDiscounts" json:"ProductComboDiscounts" toml:"ProductComboDiscounts" yaml:"ProductComboDiscounts"`
 	ProductDiscounts                         ProductDiscountSlice      `boil:"ProductDiscounts" json:"ProductDiscounts" toml:"ProductDiscounts" yaml:"ProductDiscounts"`
@@ -384,6 +387,27 @@ func (q productQuery) Exists(ctx context.Context, exec boil.ContextExecutor) (bo
 	return count > 0, nil
 }
 
+// CartItems retrieves all the cart_item's CartItems with an executor.
+func (o *Product) CartItems(mods ...qm.QueryMod) cartItemQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"cart_items\".\"product_id\"=?", o.ID),
+	)
+
+	query := CartItems(queryMods...)
+	queries.SetFrom(query.Query, "\"cart_items\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"cart_items\".*"})
+	}
+
+	return query
+}
+
 // PackagedWithProductProductComboDiscounts retrieves all the product_combo_discount's ProductComboDiscounts with an executor via packaged_with_product_id column.
 func (o *Product) PackagedWithProductProductComboDiscounts(mods ...qm.QueryMod) productComboDiscountQuery {
 	var queryMods []qm.QueryMod
@@ -466,6 +490,104 @@ func (o *Product) Stocks(mods ...qm.QueryMod) stockQuery {
 	}
 
 	return query
+}
+
+// LoadCartItems allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (productL) LoadCartItems(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProduct interface{}, mods queries.Applicator) error {
+	var slice []*Product
+	var object *Product
+
+	if singular {
+		object = maybeProduct.(*Product)
+	} else {
+		slice = *maybeProduct.(*[]*Product)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &productR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &productR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`cart_items`),
+		qm.WhereIn(`cart_items.product_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load cart_items")
+	}
+
+	var resultSlice []*CartItem
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice cart_items")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on cart_items")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for cart_items")
+	}
+
+	if len(cartItemAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.CartItems = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &cartItemR{}
+			}
+			foreign.R.Product = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ProductID {
+				local.R.CartItems = append(local.R.CartItems, foreign)
+				if foreign.R == nil {
+					foreign.R = &cartItemR{}
+				}
+				foreign.R.Product = local
+				break
+			}
+		}
+	}
+
+	return nil
 }
 
 // LoadPackagedWithProductProductComboDiscounts allows an eager lookup of values, cached into the
@@ -857,6 +979,59 @@ func (productL) LoadStocks(ctx context.Context, e boil.ContextExecutor, singular
 		}
 	}
 
+	return nil
+}
+
+// AddCartItems adds the given related objects to the existing relationships
+// of the product, optionally inserting them as new records.
+// Appends related to o.R.CartItems.
+// Sets related.R.Product appropriately.
+func (o *Product) AddCartItems(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CartItem) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.ProductID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"cart_items\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
+				strmangle.WhereClause("\"", "\"", 2, cartItemPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ProductID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &productR{
+			CartItems: related,
+		}
+	} else {
+		o.R.CartItems = append(o.R.CartItems, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &cartItemR{
+				Product: o,
+			}
+		} else {
+			rel.R.Product = o
+		}
+	}
 	return nil
 }
 

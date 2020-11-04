@@ -10,6 +10,7 @@ import (
 
 // Service expose discount functions
 type Service interface {
+	// @TODO add caching on this method
 	RetrieveProductDiscounts(ctx context.Context, productID int64) (map[int64]Rules, error)
 }
 
@@ -73,7 +74,7 @@ type Quantity struct {
 
 // RetrieveProductDiscounts retrieve product discount
 func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productID int64) (map[int64]Rules, error) {
-	productRule := make(map[int64]Rules, 0)
+	productRule := make(map[int64]Rules)
 	rules := Rules{}
 	// retrieve product discount
 	discounts, err := orm.ProductDiscounts(qm.Where(orm.ProductDiscountColumns.ProductID+"=?", productID)).All(ctx, s.DB)
@@ -133,6 +134,8 @@ func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productI
 		comboDiscountMap[packagedWithProductID] = comboDiscount
 	}
 	rules.ComboDiscounts = comboDiscountMap
-	productRule[productID] = rules
+	if len(rules.ProductDiscounts) > 0 || len(rules.ComboDiscounts) > 0 {
+		productRule[productID] = rules
+	}
 	return productRule, nil
 }
