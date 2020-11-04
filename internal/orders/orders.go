@@ -136,20 +136,20 @@ func (s orderService) GetUserCart(ctx context.Context, userID int64) (*UserCart,
 }
 
 func createUserCartItemEntry(ctx context.Context, db boil.ContextExecutor, cartID, productID, quantity int64) error {
-	// cart := &orm.CartItem{
-	// 	CartID:    cartID,
-	// 	ProductID: productID,
-	// 	Quantity:  quantity,
-	// }
-	// if err := cart.Upsert(ctx, db, true, []string{
-	// 	orm.CartItemColumns.CartID,
-	// 	orm.CartItemColumns.ProductID,
-	// }, boil.Whitelist(
-	// 	orm.CartItemColumns.Quantity,
-	// 	orm.CartItemColumns.UpdatedAt,
-	// ), boil.Infer()); err != nil {
-	// 	return err
-	// }
+	cart := &orm.CartItem{
+		CartID:    cartID,
+		ProductID: productID,
+		Quantity:  quantity,
+	}
+	if err := cart.Upsert(ctx, db, true, []string{
+		orm.CartItemColumns.CartID,
+		orm.CartItemColumns.ProductID,
+	}, boil.Whitelist(
+		orm.CartItemColumns.Quantity,
+		orm.CartItemColumns.UpdatedAt,
+	), boil.Infer()); err != nil {
+		return err
+	}
 	return nil
 }
 
