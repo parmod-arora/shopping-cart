@@ -1,11 +1,14 @@
 package auth
 
 import (
+	"errors"
 	"log"
+	"net/http"
 	"os"
 	"strconv"
 	"time"
 
+	"cinemo.com/shoping-cart/framework/loglib"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
@@ -63,4 +66,22 @@ func ValidateJWT(j jwt.JWT) error {
 	}
 
 	return nil
+}
+
+// GetLoggedInUsername extract username from request
+func GetLoggedInUsername(r *http.Request) (string, error) {
+	j, err := jws.ParseFromHeader(r, jws.Compact)
+	if err != nil {
+		return "", err
+	}
+
+	payload := j.Payload()
+	authPayload := payload.(map[string]interface{})
+	loggedInUserEmail := authPayload["sub"].(string)
+	if loggedInUserEmail == "" {
+		return "", errors.New("Could not find Email Address in Token")
+	}
+	logger := loglib.GetLogger(r.Context())
+	logger.Infof("Logged in user: %v", loggedInUserEmail)
+	return loggedInUserEmail, nil
 }

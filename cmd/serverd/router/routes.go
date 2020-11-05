@@ -7,6 +7,7 @@ import (
 
 	"cinemo.com/shoping-cart/application"
 	"cinemo.com/shoping-cart/framework/web/middleware"
+	"cinemo.com/shoping-cart/internal/cart"
 	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/internal/users"
 	"github.com/gorilla/mux"
@@ -33,6 +34,7 @@ func Handler(app *application.App) http.Handler {
 
 	users.Handlers(v1.PathPrefix("/users").Subrouter(), app.UserService)
 	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService)
+	cart.Handlers(v1.PathPrefix("/carts").Subrouter(), app.CartService, app.UserService)
 
 	return r
 }
