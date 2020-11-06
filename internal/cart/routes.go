@@ -6,6 +6,7 @@ import (
 	"net/http"
 	"strings"
 
+	"cinemo.com/shoping-cart/framework/loglib"
 	"cinemo.com/shoping-cart/framework/web/httpresponse"
 	"cinemo.com/shoping-cart/framework/web/middleware"
 	"cinemo.com/shoping-cart/framework/web/validator"
@@ -18,8 +19,8 @@ import (
 // Handlers handles users routes
 func Handlers(r *mux.Router, service Service, userService users.Service) {
 	r.Use(middleware.Authorize)
-	r.Path("/").Methods(http.MethodGet).HandlerFunc(RetrieveUserCart(service, userService))
-	r.Path("/items").Methods(http.MethodPut).HandlerFunc(RetrieveUserCart(service, userService))
+	r.Path("/items").Methods(http.MethodGet).HandlerFunc(RetrieveUserCart(service, userService))
+	r.Path("/items").Methods(http.MethodPut).HandlerFunc(AddCartItem(service, userService))
 }
 
 // RetrieveUserCart retrieve User cart from DB
@@ -67,7 +68,7 @@ func (req addCartItemRequest) Validate() error {
 func AddCartItem(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-
+		logger := loglib.GetLogger(ctx)
 		username, err := auth.GetLoggedInUsername(r)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusForbidden, errorcode.ErrorsInRequestData, err.Error())
@@ -80,6 +81,7 @@ func AddCartItem(service Service, userService users.Service) func(w http.Respons
 			return
 		}
 
+		logger.Infof("user is %v", user.Username)
 		// unmarshal request
 		req := addCartItemRequest{}
 		if err := json.NewDecoder(r.Body).Decode(&req); (err != nil || req == addCartItemRequest{}) {
@@ -96,6 +98,7 @@ func AddCartItem(service Service, userService users.Service) func(w http.Respons
 		cart, err := service.AddItemCart(ctx, user.ID, req.ProductID, req.Quantity)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
 		}
 
 		httpresponse.RespondJSON(w, http.StatusOK, cart, nil)

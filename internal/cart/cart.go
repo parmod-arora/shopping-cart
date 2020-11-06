@@ -35,26 +35,30 @@ func NewCartService(db *sql.DB, service discount.Service) Service {
 	}
 }
 
+// UserCart user cart for checkout page
 type UserCart struct {
-	ID                int64
-	UserID            int64
-	TotalAmount       int64
-	TotalSavingAmount int64
-	CartItems         []CartItem
-	LineItems         []LineItem
+	ID                int64      `json:"id,omitempty"`
+	UserID            int64      `json:"user_id,omitempty"`
+	TotalAmount       int64      `json:"total_amount,omitempty"`
+	TotalSavingAmount int64      `json:"total_saving_amount,omitempty"`
+	CartItems         []CartItem `json:"cart_items,omitempty"`
+	LineItems         []LineItem `json:"line_items,omitempty"`
 }
 
+// CartItem items added by user
 type CartItem struct {
-	ID        int64
-	CartID    int64
-	Product   products.Product
-	Quantity  int64
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int64            `json:"id,omitempty"`
+	CartID    int64            `json:"cart_id,omitempty"`
+	Product   products.Product `json:"product,omitempty"`
+	Quantity  int64            `json:"quantity,omitempty"`
+	CreatedAt time.Time        `json:"-"`
+	UpdatedAt time.Time        `json:"-"`
 }
 
 // AddItemCart add product in cart by user
 func (s cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
+	logger := loglib.GetLogger(ctx)
+	boil.DebugMode = true
 	tx, err := s.DB.Begin()
 	if err != nil {
 		return nil, err
@@ -63,14 +67,17 @@ func (s cartService) AddItemCart(ctx context.Context, userID int64, productID in
 	// get or create user cart entry
 	cartID, err := getORCreateCartEntry(ctx, tx, userID)
 	if err != nil {
+		logger.Errorf("Error %v", err.Error())
 		return nil, err
 	}
-	// add cart item entry
 
-	if err := createUserCartItemEntry(ctx, tx, userID, cartID, quantity); err != nil {
+	// add cart item entry
+	if err := createUserCartItemEntry(ctx, tx, cartID, productID, quantity); err != nil {
+		logger.Errorf("Error createUserCartItemEntry %v", err.Error())
 		return nil, err
 	}
 	if err := tx.Commit(); err != nil {
+		logger.Errorf("Error commit%v", err.Error())
 		return nil, err
 	}
 	return s.GetUserCart(ctx, userID)
@@ -118,6 +125,7 @@ func (s cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, 
 				CreatedAt: cartItem.R.Product.CreatedAt,
 				Details:   cartItem.R.Product.Details,
 				Name:      cartItem.R.Product.Name,
+				Image:     cartItem.R.Product.Image,
 				UpdatedAt: cartItem.R.Product.UpdatedAt,
 			},
 			Quantity:  cartItem.Quantity,
@@ -158,7 +166,9 @@ func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID i
 		UserID:    userID,
 		Reference: uuid.New().String(),
 	}
-	err := cart.Upsert(ctx, db, true, []string{}, boil.Whitelist(
+	err := cart.Upsert(ctx, db, true, []string{
+		orm.CartColumns.UserID,
+	}, boil.Whitelist(
 		orm.CartColumns.UpdatedAt,
 	), boil.Infer())
 	if err != nil {
@@ -169,19 +179,20 @@ func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID i
 
 // LineItem lineitem for checkout page
 type LineItem struct {
-	CartItem         CartItem
-	ComboCartItem    ComboCartItem
-	ComboDiscount    *discount.ComboDiscountProduct
-	Discount         *discount.ProductDiscount
-	Quantity         int64
-	Amount           int64
-	DiscountedAmount int64
-	SubTotal         int64
+	CartItem         CartItem                       `json:"cart_item,omitempty"`
+	ComboCartItem    ComboCartItem                  `json:"combo_cart_item,omitempty"`
+	ComboDiscount    *discount.ComboDiscountProduct `json:"combo_discount,omitempty"`
+	Discount         *discount.ProductDiscount      `json:"discount,omitempty"`
+	Quantity         int64                          `json:"quantity,omitempty"`
+	Amount           int64                          `json:"amount,omitempty"`
+	DiscountedAmount int64                          `json:"discount_amount,omitempty"`
+	SubTotal         int64                          `json:"sub_total,omitempty"`
 }
 
+// ComboCartItem combo cart item
 type ComboCartItem struct {
-	CartItem           CartItem
-	PackedWithCartItem CartItem
+	CartItem           CartItem `json:"cart_item,omitempty"`
+	PackedWithCartItem CartItem `json:"packed_with_cart_item,omitempty"`
 }
 
 func applyDiscountRules(ctx context.Context, usercart *UserCart, discountService discount.Service) (*UserCart, error) {

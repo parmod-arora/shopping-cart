@@ -10,12 +10,13 @@ import (
 
 // Product representation in app
 type Product struct {
-	ID        int64
-	Name      string
-	Details   string
-	Amount    int64
-	CreatedAt time.Time
-	UpdatedAt time.Time
+	ID        int64     `json:"id,omitempty"`
+	Name      string    `json:"name,omitempty"`
+	Details   string    `json:"details,omitempty"`
+	Amount    int64     `json:"amount,omitempty"`
+	Image     string    `json:"image,omitempty"`
+	CreatedAt time.Time `json:"-"`
+	UpdatedAt time.Time `json:"-"`
 }
 
 type ProductDiscount struct {

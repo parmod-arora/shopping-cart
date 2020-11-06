@@ -33,7 +33,7 @@ func Handler(app *application.App) http.Handler {
 	v1 := r.PathPrefix("/api/v1").Subrouter()
 
 	users.Handlers(v1.PathPrefix("/users").Subrouter(), app.UserService)
-	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService)
+	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService, app.UserService)
 	cart.Handlers(v1.PathPrefix("/carts").Subrouter(), app.CartService, app.UserService)
 
 	return r

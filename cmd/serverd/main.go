@@ -8,6 +8,8 @@ import (
 	"cinemo.com/shoping-cart/framework/appenv"
 	"cinemo.com/shoping-cart/framework/db"
 	"cinemo.com/shoping-cart/framework/web/server"
+	"cinemo.com/shoping-cart/internal/cart"
+	"cinemo.com/shoping-cart/internal/discount"
 	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/internal/users"
 	"cinemo.com/shoping-cart/pkg/projectpath"
@@ -33,9 +35,12 @@ func main() {
 	dbConnPool := db.InitDatabase(appenv.GetWithDefault("DATABASE_URL", "postgres://shopingcart:@localhost:5433/shopingcart?sslmode=disable"))
 
 	// prepare application dependencies
+	discountService := discount.NewDiscountService(dbConnPool)
 	app := application.App{
-		UserService:    users.NewUserService(dbConnPool),
-		ProductService: products.NewProductService(dbConnPool),
+		UserService:     users.NewUserService(dbConnPool),
+		ProductService:  products.NewProductService(dbConnPool),
+		DiscountService: discountService,
+		CartService:     cart.NewCartService(dbConnPool, discountService),
 	}
 
 	// start http server

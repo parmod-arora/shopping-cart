@@ -21,17 +21,17 @@ type User struct {
 
 // UserRequest is what we require from clients when adding a User.
 type userRequest struct {
-	Username  string  `json:"username" validate:"required"`
+	Username  string  `json:"email" validate:"required"`
 	Password  string  `json:"password" validate:"required"`
-	FirstName *string `json:"firstname"`
-	LastName  *string `json:"lastname"`
+	FirstName *string `json:"firstName"`
+	LastName  *string `json:"lastName"`
 }
 
 type userResponse struct {
 	ID        int64     `json:"id"`
-	Username  string    `json:"username"`
-	FirstName *string   `json:"firstname,omitempty"`
-	LastName  *string   `json:"lastname,omitempty"`
+	Username  string    `json:"email"`
+	FirstName *string   `json:"firstName,omitempty"`
+	LastName  *string   `json:"lastName,omitempty"`
 	CreatedAt time.Time `json:"created_at"`
 	UpdatedAt time.Time `json:"updated_at"`
 }
@@ -48,7 +48,7 @@ func (req *userRequest) Validate() error {
 }
 
 type loginRequest struct {
-	Username string `json:"username"`
+	Username string `json:"email"`
 	Password string `json:"password" validate:"required"`
 }
 

@@ -4,6 +4,7 @@ CREATE TABLE products (
     details TEXT NOT NULL,
 	amount BIGINT NOT NULL,
     currency TEXT NOT NULL,
+    "image" TEXT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
 );
@@ -21,7 +22,8 @@ CREATE TABLE carts (
     user_id BIGINT NOT NULL REFERENCES users(id),
     reference text NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    UNIQUE (user_id)
 );
 CREATE INDEX carts_user_id_idx ON carts(user_id);
 
@@ -31,11 +33,11 @@ CREATE TABLE cart_items (
     product_id BIGINT NOT NULL REFERENCES products(id),
     quantity BIGINT NOT NULL,
     created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
+    UNIQUE (cart_id, product_id)
 );
 
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
-
 
 CREATE TABLE product_combo_discount ( 
     id BIGSERIAL PRIMARY KEY,

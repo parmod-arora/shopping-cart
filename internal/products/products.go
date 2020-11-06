@@ -44,5 +44,6 @@ func transformOrmToModelProduct(product *orm.Product) *Product {
 		Name:      product.Name,
 		CreatedAt: product.CreatedAt,
 		UpdatedAt: product.UpdatedAt,
+		Image:     product.Image,
 	}
 }

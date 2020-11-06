@@ -5,7 +5,7 @@ services:
     container_name: go-local
     image: golang:1.15
     ports:
-      - "3000:3000"
+      - "4000:4000"
     environment:
       TZ: Asia/Singapore
       DATABASE_URL: postgres://shopingcart:@db:5432/shopingcart?sslmode=disable
