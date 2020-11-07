@@ -43,6 +43,7 @@ func RetrieveUserCart(service Service, userService users.Service) func(w http.Re
 		cart, err := service.GetUserCart(ctx, user.ID)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
 		}
 		httpresponse.RespondJSON(w, http.StatusOK, cart, nil)
 	}
@@ -57,7 +58,7 @@ type addCartItemRequest struct {
 func (req addCartItemRequest) Validate() error {
 	var errorArray []string
 	validator.CheckRule(&errorArray, req.ProductID > 0, "product_id is mandatory")
-	validator.CheckRule(&errorArray, req.Quantity > 0, "quantity should be greater than 0")
+	validator.CheckRule(&errorArray, req.Quantity > -1, "quantity should be greater than -1")
 	if len(errorArray) > 0 {
 		return errors.New(strings.Join(errorArray, "; "))
 	}

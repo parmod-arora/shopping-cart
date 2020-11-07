@@ -70,11 +70,17 @@ func (s cartService) AddItemCart(ctx context.Context, userID int64, productID in
 		logger.Errorf("Error %v", err.Error())
 		return nil, err
 	}
-
-	// add cart item entry
-	if err := createUserCartItemEntry(ctx, tx, cartID, productID, quantity); err != nil {
-		logger.Errorf("Error createUserCartItemEntry %v", err.Error())
-		return nil, err
+	if quantity == 0 {
+		if err := deleteUserCartItemEntry(ctx, tx, cartID, productID); err != nil {
+			logger.Errorf("Error deleteUserCartItemEntry %v", err.Error())
+			return nil, err
+		}
+	} else {
+		// add cart item entry
+		if err := createUserCartItemEntry(ctx, tx, cartID, productID, quantity); err != nil {
+			logger.Errorf("Error createUserCartItemEntry %v", err.Error())
+			return nil, err
+		}
 	}
 	if err := tx.Commit(); err != nil {
 		logger.Errorf("Error commit%v", err.Error())
@@ -107,6 +113,9 @@ func (s cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, 
 		qm.Where(orm.CartColumns.UserID+"=?", userID),
 	).One(ctx, s.DB)
 	if err != nil {
+		if err == sql.ErrNoRows {
+			return &UserCart{}, nil
+		}
 		return nil, err
 	}
 	usercart := &UserCart{
@@ -159,6 +168,11 @@ func createUserCartItemEntry(ctx context.Context, db boil.ContextExecutor, cartI
 		return err
 	}
 	return nil
+}
+
+func deleteUserCartItemEntry(ctx context.Context, db boil.ContextExecutor, cartID, productID int64) error {
+	_, err := orm.CartItems(qm.Where(orm.CartItemColumns.CartID+"=? AND "+orm.CartItemColumns.ProductID+"=?", cartID, productID)).DeleteAll(ctx, db)
+	return err
 }
 
 func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID int64) (int64, error) {
@@ -259,6 +273,9 @@ func applyDiscountRules(ctx context.Context, usercart *UserCart, discountService
 				// check cartitems against combo rule
 				for packagedWithProdcutID, comboDiscount := range rules.ComboDiscounts {
 					packagedWithCartItem := productMap[packagedWithProdcutID]
+					if packagedWithCartItem == nil {
+						continue
+					}
 					// check combo discount conditions
 					// check conditions for product and packaged with product
 					if itemQuantityMatchesWithDiscountQuantity(discount.Quantity{Function: discount.GTE, Value: comboDiscount.Quantity.Value}, cartItem.Quantity) &&
