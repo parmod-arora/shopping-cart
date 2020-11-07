@@ -14,7 +14,6 @@ import (
 	"time"
 
 	"github.com/friendsofgo/errors"
-	"github.com/volatiletech/null/v8"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -24,109 +23,61 @@ import (
 
 // ProductDiscount is an object representing the database table.
 type ProductDiscount struct {
-	ID                 int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
-	Name               string    `boil:"name" json:"name" toml:"name" yaml:"name"`
-	ProductID          int64     `boil:"product_id" json:"product_id" toml:"product_id" yaml:"product_id"`
-	DiscountType       string    `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
-	Quantity           int64     `boil:"quantity" json:"quantity" toml:"quantity" yaml:"quantity"`
-	QuantityFN         string    `boil:"quantity_fn" json:"quantity_fn" toml:"quantity_fn" yaml:"quantity_fn"`
-	Discount           int64     `boil:"discount" json:"discount" toml:"discount" yaml:"discount"`
-	EffectiveStartDate time.Time `boil:"effective_start_date" json:"effective_start_date" toml:"effective_start_date" yaml:"effective_start_date"`
-	EffectiveEndDate   null.Time `boil:"effective_end_date" json:"effective_end_date,omitempty" toml:"effective_end_date" yaml:"effective_end_date,omitempty"`
-	CreatedAt          time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
-	UpdatedAt          time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
+	ID           int64     `boil:"id" json:"id" toml:"id" yaml:"id"`
+	Name         string    `boil:"name" json:"name" toml:"name" yaml:"name"`
+	DiscountType string    `boil:"discount_type" json:"discount_type" toml:"discount_type" yaml:"discount_type"`
+	Discount     int64     `boil:"discount" json:"discount" toml:"discount" yaml:"discount"`
+	CreatedAt    time.Time `boil:"created_at" json:"created_at" toml:"created_at" yaml:"created_at"`
+	UpdatedAt    time.Time `boil:"updated_at" json:"updated_at" toml:"updated_at" yaml:"updated_at"`
 
 	R *productDiscountR `boil:"-" json:"-" toml:"-" yaml:"-"`
 	L productDiscountL  `boil:"-" json:"-" toml:"-" yaml:"-"`
 }
 
 var ProductDiscountColumns = struct {
-	ID                 string
-	Name               string
-	ProductID          string
-	DiscountType       string
-	Quantity           string
-	QuantityFN         string
-	Discount           string
-	EffectiveStartDate string
-	EffectiveEndDate   string
-	CreatedAt          string
-	UpdatedAt          string
+	ID           string
+	Name         string
+	DiscountType string
+	Discount     string
+	CreatedAt    string
+	UpdatedAt    string
 }{
-	ID:                 "id",
-	Name:               "name",
-	ProductID:          "product_id",
-	DiscountType:       "discount_type",
-	Quantity:           "quantity",
-	QuantityFN:         "quantity_fn",
-	Discount:           "discount",
-	EffectiveStartDate: "effective_start_date",
-	EffectiveEndDate:   "effective_end_date",
-	CreatedAt:          "created_at",
-	UpdatedAt:          "updated_at",
+	ID:           "id",
+	Name:         "name",
+	DiscountType: "discount_type",
+	Discount:     "discount",
+	CreatedAt:    "created_at",
+	UpdatedAt:    "updated_at",
 }
 
 // Generated where
 
-type whereHelpernull_Time struct{ field string }
-
-func (w whereHelpernull_Time) EQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, false, x)
-}
-func (w whereHelpernull_Time) NEQ(x null.Time) qm.QueryMod {
-	return qmhelper.WhereNullEQ(w.field, true, x)
-}
-func (w whereHelpernull_Time) IsNull() qm.QueryMod    { return qmhelper.WhereIsNull(w.field) }
-func (w whereHelpernull_Time) IsNotNull() qm.QueryMod { return qmhelper.WhereIsNotNull(w.field) }
-func (w whereHelpernull_Time) LT(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LT, x)
-}
-func (w whereHelpernull_Time) LTE(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.LTE, x)
-}
-func (w whereHelpernull_Time) GT(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GT, x)
-}
-func (w whereHelpernull_Time) GTE(x null.Time) qm.QueryMod {
-	return qmhelper.Where(w.field, qmhelper.GTE, x)
-}
-
 var ProductDiscountWhere = struct {
-	ID                 whereHelperint64
-	Name               whereHelperstring
-	ProductID          whereHelperint64
-	DiscountType       whereHelperstring
-	Quantity           whereHelperint64
-	QuantityFN         whereHelperstring
-	Discount           whereHelperint64
-	EffectiveStartDate whereHelpertime_Time
-	EffectiveEndDate   whereHelpernull_Time
-	CreatedAt          whereHelpertime_Time
-	UpdatedAt          whereHelpertime_Time
+	ID           whereHelperint64
+	Name         whereHelperstring
+	DiscountType whereHelperstring
+	Discount     whereHelperint64
+	CreatedAt    whereHelpertime_Time
+	UpdatedAt    whereHelpertime_Time
 }{
-	ID:                 whereHelperint64{field: "\"product_discounts\".\"id\""},
-	Name:               whereHelperstring{field: "\"product_discounts\".\"name\""},
-	ProductID:          whereHelperint64{field: "\"product_discounts\".\"product_id\""},
-	DiscountType:       whereHelperstring{field: "\"product_discounts\".\"discount_type\""},
-	Quantity:           whereHelperint64{field: "\"product_discounts\".\"quantity\""},
-	QuantityFN:         whereHelperstring{field: "\"product_discounts\".\"quantity_fn\""},
-	Discount:           whereHelperint64{field: "\"product_discounts\".\"discount\""},
-	EffectiveStartDate: whereHelpertime_Time{field: "\"product_discounts\".\"effective_start_date\""},
-	EffectiveEndDate:   whereHelpernull_Time{field: "\"product_discounts\".\"effective_end_date\""},
-	CreatedAt:          whereHelpertime_Time{field: "\"product_discounts\".\"created_at\""},
-	UpdatedAt:          whereHelpertime_Time{field: "\"product_discounts\".\"updated_at\""},
+	ID:           whereHelperint64{field: "\"product_discounts\".\"id\""},
+	Name:         whereHelperstring{field: "\"product_discounts\".\"name\""},
+	DiscountType: whereHelperstring{field: "\"product_discounts\".\"discount_type\""},
+	Discount:     whereHelperint64{field: "\"product_discounts\".\"discount\""},
+	CreatedAt:    whereHelpertime_Time{field: "\"product_discounts\".\"created_at\""},
+	UpdatedAt:    whereHelpertime_Time{field: "\"product_discounts\".\"updated_at\""},
 }
 
 // ProductDiscountRels is where relationship names are stored.
 var ProductDiscountRels = struct {
-	Product string
+	ProductDiscountRules string
 }{
-	Product: "Product",
+	ProductDiscountRules: "ProductDiscountRules",
 }
 
 // productDiscountR is where relationships are stored.
 type productDiscountR struct {
-	Product *Product `boil:"Product" json:"Product" toml:"Product" yaml:"Product"`
+	ProductDiscountRules ProductDiscountRuleSlice `boil:"ProductDiscountRules" json:"ProductDiscountRules" toml:"ProductDiscountRules" yaml:"ProductDiscountRules"`
 }
 
 // NewStruct creates a new relationship struct
@@ -138,8 +89,8 @@ func (*productDiscountR) NewStruct() *productDiscountR {
 type productDiscountL struct{}
 
 var (
-	productDiscountAllColumns            = []string{"id", "name", "product_id", "discount_type", "quantity", "quantity_fn", "discount", "effective_start_date", "effective_end_date", "created_at", "updated_at"}
-	productDiscountColumnsWithoutDefault = []string{"name", "product_id", "discount_type", "quantity", "quantity_fn", "discount", "effective_start_date", "effective_end_date"}
+	productDiscountAllColumns            = []string{"id", "name", "discount_type", "discount", "created_at", "updated_at"}
+	productDiscountColumnsWithoutDefault = []string{"name", "discount_type", "discount"}
 	productDiscountColumnsWithDefault    = []string{"id", "created_at", "updated_at"}
 	productDiscountPrimaryKeyColumns     = []string{"id"}
 )
@@ -419,23 +370,30 @@ func (q productDiscountQuery) Exists(ctx context.Context, exec boil.ContextExecu
 	return count > 0, nil
 }
 
-// Product pointed to by the foreign key.
-func (o *ProductDiscount) Product(mods ...qm.QueryMod) productQuery {
-	queryMods := []qm.QueryMod{
-		qm.Where("\"id\" = ?", o.ProductID),
+// ProductDiscountRules retrieves all the product_discount_rule's ProductDiscountRules with an executor.
+func (o *ProductDiscount) ProductDiscountRules(mods ...qm.QueryMod) productDiscountRuleQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
 	}
 
-	queryMods = append(queryMods, mods...)
+	queryMods = append(queryMods,
+		qm.Where("\"product_discount_rules\".\"product_discount_id\"=?", o.ID),
+	)
 
-	query := Products(queryMods...)
-	queries.SetFrom(query.Query, "\"products\"")
+	query := ProductDiscountRules(queryMods...)
+	queries.SetFrom(query.Query, "\"product_discount_rules\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"product_discount_rules\".*"})
+	}
 
 	return query
 }
 
-// LoadProduct allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for an N-1 relationship.
-func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProductDiscount interface{}, mods queries.Applicator) error {
+// LoadProductDiscountRules allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (productDiscountL) LoadProductDiscountRules(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProductDiscount interface{}, mods queries.Applicator) error {
 	var slice []*ProductDiscount
 	var object *ProductDiscount
 
@@ -450,8 +408,7 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 		if object.R == nil {
 			object.R = &productDiscountR{}
 		}
-		args = append(args, object.ProductID)
-
+		args = append(args, object.ID)
 	} else {
 	Outer:
 		for _, obj := range slice {
@@ -460,13 +417,12 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 			}
 
 			for _, a := range args {
-				if a == obj.ProductID {
+				if a == obj.ID {
 					continue Outer
 				}
 			}
 
-			args = append(args, obj.ProductID)
-
+			args = append(args, obj.ID)
 		}
 	}
 
@@ -475,8 +431,8 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 	}
 
 	query := NewQuery(
-		qm.From(`products`),
-		qm.WhereIn(`products.id in ?`, args...),
+		qm.From(`product_discount_rules`),
+		qm.WhereIn(`product_discount_rules.product_discount_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -484,51 +440,47 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load Product")
+		return errors.Wrap(err, "failed to eager load product_discount_rules")
 	}
 
-	var resultSlice []*Product
+	var resultSlice []*ProductDiscountRule
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice Product")
+		return errors.Wrap(err, "failed to bind eager loaded slice product_discount_rules")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results of eager load for products")
+		return errors.Wrap(err, "failed to close results in eager load on product_discount_rules")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for products")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_discount_rules")
 	}
 
-	if len(productDiscountAfterSelectHooks) != 0 {
+	if len(productDiscountRuleAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
 			}
 		}
 	}
-
-	if len(resultSlice) == 0 {
-		return nil
-	}
-
 	if singular {
-		foreign := resultSlice[0]
-		object.R.Product = foreign
-		if foreign.R == nil {
-			foreign.R = &productR{}
+		object.R.ProductDiscountRules = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &productDiscountRuleR{}
+			}
+			foreign.R.ProductDiscount = object
 		}
-		foreign.R.ProductDiscounts = append(foreign.R.ProductDiscounts, object)
 		return nil
 	}
 
-	for _, local := range slice {
-		for _, foreign := range resultSlice {
-			if local.ProductID == foreign.ID {
-				local.R.Product = foreign
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.ProductDiscountID {
+				local.R.ProductDiscountRules = append(local.R.ProductDiscountRules, foreign)
 				if foreign.R == nil {
-					foreign.R = &productR{}
+					foreign.R = &productDiscountRuleR{}
 				}
-				foreign.R.ProductDiscounts = append(foreign.R.ProductDiscounts, local)
+				foreign.R.ProductDiscount = local
 				break
 			}
 		}
@@ -537,50 +489,56 @@ func (productDiscountL) LoadProduct(ctx context.Context, e boil.ContextExecutor,
 	return nil
 }
 
-// SetProduct of the productDiscount to the related item.
-// Sets o.R.Product to related.
-// Adds o to related.R.ProductDiscounts.
-func (o *ProductDiscount) SetProduct(ctx context.Context, exec boil.ContextExecutor, insert bool, related *Product) error {
+// AddProductDiscountRules adds the given related objects to the existing relationships
+// of the product_discount, optionally inserting them as new records.
+// Appends related to o.R.ProductDiscountRules.
+// Sets related.R.ProductDiscount appropriately.
+func (o *ProductDiscount) AddProductDiscountRules(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ProductDiscountRule) error {
 	var err error
-	if insert {
-		if err = related.Insert(ctx, exec, boil.Infer()); err != nil {
-			return errors.Wrap(err, "failed to insert into foreign table")
+	for _, rel := range related {
+		if insert {
+			rel.ProductDiscountID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"product_discount_rules\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"product_discount_id"}),
+				strmangle.WhereClause("\"", "\"", 2, productDiscountRulePrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.ProductDiscountID = o.ID
 		}
 	}
 
-	updateQuery := fmt.Sprintf(
-		"UPDATE \"product_discounts\" SET %s WHERE %s",
-		strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
-		strmangle.WhereClause("\"", "\"", 2, productDiscountPrimaryKeyColumns),
-	)
-	values := []interface{}{related.ID, o.ID}
-
-	if boil.IsDebug(ctx) {
-		writer := boil.DebugWriterFrom(ctx)
-		fmt.Fprintln(writer, updateQuery)
-		fmt.Fprintln(writer, values)
-	}
-	if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-		return errors.Wrap(err, "failed to update local table")
-	}
-
-	o.ProductID = related.ID
 	if o.R == nil {
 		o.R = &productDiscountR{
-			Product: related,
+			ProductDiscountRules: related,
 		}
 	} else {
-		o.R.Product = related
+		o.R.ProductDiscountRules = append(o.R.ProductDiscountRules, related...)
 	}
 
-	if related.R == nil {
-		related.R = &productR{
-			ProductDiscounts: ProductDiscountSlice{o},
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &productDiscountRuleR{
+				ProductDiscount: o,
+			}
+		} else {
+			rel.R.ProductDiscount = o
 		}
-	} else {
-		related.R.ProductDiscounts = append(related.R.ProductDiscounts, o)
 	}
-
 	return nil
 }
 

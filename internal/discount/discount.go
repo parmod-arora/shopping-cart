@@ -3,6 +3,7 @@ package discount
 import (
 	"context"
 	"database/sql"
+	"time"
 
 	"cinemo.com/shoping-cart/internal/orm"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
@@ -10,8 +11,7 @@ import (
 
 // Service expose discount functions
 type Service interface {
-	// @TODO add caching on this method
-	RetrieveProductDiscounts(ctx context.Context, productID int64) (map[int64]Rules, error)
+	RetrieveProductDiscounts(ctx context.Context, productID int64) ([]ProductDiscount, error)
 }
 
 type discountService struct {
@@ -43,27 +43,26 @@ type Type string
 // PERCENTAGE discount type
 const PERCENTAGE Type = "PERCENTAGE"
 
-// Rules discount rules
-type Rules struct {
-	ProductDiscounts []ProductDiscount              `json:"product_discounts,omitempty"`
-	ComboDiscounts   map[int64]ComboDiscountProduct `json:"combo_discount,omitempty"`
-}
-
-// ComboDiscountProduct ComboDiscountProduct
-type ComboDiscountProduct struct {
-	Name                 string   `json:"name,omitempty"`
-	PackagedWithQuantity Quantity `json:"packaged_with_quantity,omitempty"`
-	Quantity             Quantity `json:"quantity,omitempty"`
-	Discount             int64    `json:"disount,omitempty"`
-	DiscountType         Type     `json:"disount_type,omitempty"`
+// Rule discount rules
+type Rule struct {
+	ID                int64            `json:"id"`
+	ProductDiscountID int64            `json:"product_discount_id"`
+	ProductID         int64            `json:"product_id"`
+	ProductQuantity   int64            `json:"product_quantity"`
+	ProductQuantityFN QuantityFunction `json:"product_quantity_fn"`
+	CreatedAt         time.Time        `json:"created_at"`
+	UpdatedAt         time.Time        `json:"updated_at"`
 }
 
 // ProductDiscount ProductDiscount
 type ProductDiscount struct {
-	Name         string   `json:"name,omitempty"`
-	Discount     int64    `json:"disount,omitempty"`
-	DiscountType Type     `json:"disount_type,omitempty"`
-	Quantity     Quantity `json:"quantity,omitempty"`
+	ID           int64     `json:"id,omitempty"`
+	Name         string    `json:"name,omitempty"`
+	Discount     int64     `json:"discount,omitempty"`
+	DiscountType Type      `json:"discount_type,omitempty"`
+	Rules        []Rule    `json:"discount_rules,omitempty"`
+	CreatedAt    time.Time `json:"created_at"`
+	UpdatedAt    time.Time `json:"updated_at"`
 }
 
 // Quantity Quantity
@@ -73,69 +72,51 @@ type Quantity struct {
 }
 
 // RetrieveProductDiscounts retrieve product discount
-func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productID int64) (map[int64]Rules, error) {
-	productRule := make(map[int64]Rules)
-	rules := Rules{}
-	// retrieve product discount
-	discounts, err := orm.ProductDiscounts(qm.Where(orm.ProductDiscountColumns.ProductID+"=?", productID)).All(ctx, s.DB)
-	if err != nil {
-		return nil, err
-	}
+func (s *discountService) RetrieveProductDiscounts(ctx context.Context, productID int64) ([]ProductDiscount, error) {
+	var discounts []ProductDiscount
 
-	// prepare product discount
-	for _, discount := range discounts {
-		productDiscount := ProductDiscount{
-			Name:         discount.Name,
-			Discount:     discount.Discount,
-			DiscountType: Type(discount.DiscountType),
-			Quantity: Quantity{
-				Function: QuantityFunction(discount.QuantityFN),
-				Value:    discount.Quantity,
-			},
-		}
-		rules.ProductDiscounts = append(rules.ProductDiscounts, productDiscount)
-	}
-
-	// retrieve combo product discount
-	comboDiscounts, err := orm.ProductComboDiscounts(
-		orm.ProductComboDiscountWhere.ProductID.EQ(productID),
-		qm.Or(orm.ProductComboDiscountColumns.PackagedWithProductID+"=?", productID),
+	// find product offers for aproduct
+	discountRules, err := orm.ProductDiscountRules(
+		qm.Select("DISTINCT product_discount_rules.product_id, product_discount_rules.*"),
+		qm.Where(orm.ProductDiscountRuleColumns.ProductID+"=?", productID),
 	).All(ctx, s.DB)
 	if err != nil {
 		return nil, err
 	}
 
-	// prepare combo discount
-	comboDiscountMap := make(map[int64]ComboDiscountProduct)
-	for _, discount := range comboDiscounts {
-		// reverse entry
-		packagedWithProductID := discount.ProductID
-		packagedWithProductQuantity := discount.ProductQuantity
-		productQuantity := discount.PackagedWithProductQuantity
-		if packagedWithProductID == productID {
-			packagedWithProductID = discount.PackagedWithProductID
-			packagedWithProductQuantity = discount.PackagedWithProductQuantity
-			productQuantity = discount.ProductQuantity
+	for _, rule := range discountRules {
+		ormProductDiscounts, err := orm.ProductDiscounts(
+			qm.Load(qm.Rels(orm.ProductDiscountRels.ProductDiscountRules)),
+			qm.Where(orm.ProductDiscountColumns.ID+"=?", rule.ProductDiscountID),
+		).All(ctx, s.DB)
+		if err != nil {
+			return nil, err
 		}
 
-		comboDiscount := ComboDiscountProduct{
-			Name:         discount.Name,
-			Discount:     discount.Discount,
-			DiscountType: PERCENTAGE,
-			PackagedWithQuantity: Quantity{
-				Function: QuantityFunction(discount.PackagedWithProductQuantityFN),
-				Value:    packagedWithProductQuantity,
-			},
-			Quantity: Quantity{
-				Function: QuantityFunction(discount.ProductQuantityFN),
-				Value:    productQuantity,
-			},
+		for _, ormProductDiscount := range ormProductDiscounts {
+			productDiscount := ProductDiscount{
+				ID:           ormProductDiscount.ID,
+				Name:         ormProductDiscount.Name,
+				Discount:     ormProductDiscount.Discount,
+				DiscountType: Type(ormProductDiscount.DiscountType),
+				CreatedAt:    ormProductDiscount.CreatedAt,
+				UpdatedAt:    ormProductDiscount.UpdatedAt,
+			}
+
+			for _, ormDiscountRule := range ormProductDiscount.R.ProductDiscountRules {
+				rule := Rule{
+					ID:                ormDiscountRule.ID,
+					ProductDiscountID: ormDiscountRule.ProductDiscountID,
+					ProductID:         ormDiscountRule.ProductID,
+					ProductQuantity:   ormDiscountRule.ProductQuantity,
+					ProductQuantityFN: QuantityFunction(ormDiscountRule.ProductQuantityFN),
+					CreatedAt:         ormDiscountRule.CreatedAt,
+					UpdatedAt:         ormDiscountRule.UpdatedAt,
+				}
+				productDiscount.Rules = append(productDiscount.Rules, rule)
+			}
+			discounts = append(discounts, productDiscount)
 		}
-		comboDiscountMap[packagedWithProductID] = comboDiscount
 	}
-	rules.ComboDiscounts = comboDiscountMap
-	if len(rules.ProductDiscounts) > 0 || len(rules.ComboDiscounts) > 0 {
-		productRule[productID] = rules
-	}
-	return productRule, nil
+	return discounts, nil
 }

@@ -80,26 +80,20 @@ var ProductWhere = struct {
 
 // ProductRels is where relationship names are stored.
 var ProductRels = struct {
-	CartItems                                string
-	PackagedWithProductProductComboDiscounts string
-	ProductComboDiscounts                    string
-	ProductDiscounts                         string
-	Stocks                                   string
+	CartItems            string
+	ProductDiscountRules string
+	Stocks               string
 }{
-	CartItems:                                "CartItems",
-	PackagedWithProductProductComboDiscounts: "PackagedWithProductProductComboDiscounts",
-	ProductComboDiscounts:                    "ProductComboDiscounts",
-	ProductDiscounts:                         "ProductDiscounts",
-	Stocks:                                   "Stocks",
+	CartItems:            "CartItems",
+	ProductDiscountRules: "ProductDiscountRules",
+	Stocks:               "Stocks",
 }
 
 // productR is where relationships are stored.
 type productR struct {
-	CartItems                                CartItemSlice             `boil:"CartItems" json:"CartItems" toml:"CartItems" yaml:"CartItems"`
-	PackagedWithProductProductComboDiscounts ProductComboDiscountSlice `boil:"PackagedWithProductProductComboDiscounts" json:"PackagedWithProductProductComboDiscounts" toml:"PackagedWithProductProductComboDiscounts" yaml:"PackagedWithProductProductComboDiscounts"`
-	ProductComboDiscounts                    ProductComboDiscountSlice `boil:"ProductComboDiscounts" json:"ProductComboDiscounts" toml:"ProductComboDiscounts" yaml:"ProductComboDiscounts"`
-	ProductDiscounts                         ProductDiscountSlice      `boil:"ProductDiscounts" json:"ProductDiscounts" toml:"ProductDiscounts" yaml:"ProductDiscounts"`
-	Stocks                                   StockSlice                `boil:"Stocks" json:"Stocks" toml:"Stocks" yaml:"Stocks"`
+	CartItems            CartItemSlice            `boil:"CartItems" json:"CartItems" toml:"CartItems" yaml:"CartItems"`
+	ProductDiscountRules ProductDiscountRuleSlice `boil:"ProductDiscountRules" json:"ProductDiscountRules" toml:"ProductDiscountRules" yaml:"ProductDiscountRules"`
+	Stocks               StockSlice               `boil:"Stocks" json:"Stocks" toml:"Stocks" yaml:"Stocks"`
 }
 
 // NewStruct creates a new relationship struct
@@ -413,64 +407,22 @@ func (o *Product) CartItems(mods ...qm.QueryMod) cartItemQuery {
 	return query
 }
 
-// PackagedWithProductProductComboDiscounts retrieves all the product_combo_discount's ProductComboDiscounts with an executor via packaged_with_product_id column.
-func (o *Product) PackagedWithProductProductComboDiscounts(mods ...qm.QueryMod) productComboDiscountQuery {
+// ProductDiscountRules retrieves all the product_discount_rule's ProductDiscountRules with an executor.
+func (o *Product) ProductDiscountRules(mods ...qm.QueryMod) productDiscountRuleQuery {
 	var queryMods []qm.QueryMod
 	if len(mods) != 0 {
 		queryMods = append(queryMods, mods...)
 	}
 
 	queryMods = append(queryMods,
-		qm.Where("\"product_combo_discount\".\"packaged_with_product_id\"=?", o.ID),
+		qm.Where("\"product_discount_rules\".\"product_id\"=?", o.ID),
 	)
 
-	query := ProductComboDiscounts(queryMods...)
-	queries.SetFrom(query.Query, "\"product_combo_discount\"")
+	query := ProductDiscountRules(queryMods...)
+	queries.SetFrom(query.Query, "\"product_discount_rules\"")
 
 	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"\"product_combo_discount\".*"})
-	}
-
-	return query
-}
-
-// ProductComboDiscounts retrieves all the product_combo_discount's ProductComboDiscounts with an executor.
-func (o *Product) ProductComboDiscounts(mods ...qm.QueryMod) productComboDiscountQuery {
-	var queryMods []qm.QueryMod
-	if len(mods) != 0 {
-		queryMods = append(queryMods, mods...)
-	}
-
-	queryMods = append(queryMods,
-		qm.Where("\"product_combo_discount\".\"product_id\"=?", o.ID),
-	)
-
-	query := ProductComboDiscounts(queryMods...)
-	queries.SetFrom(query.Query, "\"product_combo_discount\"")
-
-	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"\"product_combo_discount\".*"})
-	}
-
-	return query
-}
-
-// ProductDiscounts retrieves all the product_discount's ProductDiscounts with an executor.
-func (o *Product) ProductDiscounts(mods ...qm.QueryMod) productDiscountQuery {
-	var queryMods []qm.QueryMod
-	if len(mods) != 0 {
-		queryMods = append(queryMods, mods...)
-	}
-
-	queryMods = append(queryMods,
-		qm.Where("\"product_discounts\".\"product_id\"=?", o.ID),
-	)
-
-	query := ProductDiscounts(queryMods...)
-	queries.SetFrom(query.Query, "\"product_discounts\"")
-
-	if len(queries.GetSelect(query.Query)) == 0 {
-		queries.SetSelect(query.Query, []string{"\"product_discounts\".*"})
+		queries.SetSelect(query.Query, []string{"\"product_discount_rules\".*"})
 	}
 
 	return query
@@ -595,9 +547,9 @@ func (productL) LoadCartItems(ctx context.Context, e boil.ContextExecutor, singu
 	return nil
 }
 
-// LoadPackagedWithProductProductComboDiscounts allows an eager lookup of values, cached into the
+// LoadProductDiscountRules allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (productL) LoadPackagedWithProductProductComboDiscounts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProduct interface{}, mods queries.Applicator) error {
+func (productL) LoadProductDiscountRules(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProduct interface{}, mods queries.Applicator) error {
 	var slice []*Product
 	var object *Product
 
@@ -635,8 +587,8 @@ func (productL) LoadPackagedWithProductProductComboDiscounts(ctx context.Context
 	}
 
 	query := NewQuery(
-		qm.From(`product_combo_discount`),
-		qm.WhereIn(`product_combo_discount.packaged_with_product_id in ?`, args...),
+		qm.From(`product_discount_rules`),
+		qm.WhereIn(`product_discount_rules.product_id in ?`, args...),
 	)
 	if mods != nil {
 		mods.Apply(query)
@@ -644,22 +596,22 @@ func (productL) LoadPackagedWithProductProductComboDiscounts(ctx context.Context
 
 	results, err := query.QueryContext(ctx, e)
 	if err != nil {
-		return errors.Wrap(err, "failed to eager load product_combo_discount")
+		return errors.Wrap(err, "failed to eager load product_discount_rules")
 	}
 
-	var resultSlice []*ProductComboDiscount
+	var resultSlice []*ProductDiscountRule
 	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice product_combo_discount")
+		return errors.Wrap(err, "failed to bind eager loaded slice product_discount_rules")
 	}
 
 	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on product_combo_discount")
+		return errors.Wrap(err, "failed to close results in eager load on product_discount_rules")
 	}
 	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_combo_discount")
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_discount_rules")
 	}
 
-	if len(productComboDiscountAfterSelectHooks) != 0 {
+	if len(productDiscountRuleAfterSelectHooks) != 0 {
 		for _, obj := range resultSlice {
 			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
 				return err
@@ -667,108 +619,10 @@ func (productL) LoadPackagedWithProductProductComboDiscounts(ctx context.Context
 		}
 	}
 	if singular {
-		object.R.PackagedWithProductProductComboDiscounts = resultSlice
+		object.R.ProductDiscountRules = resultSlice
 		for _, foreign := range resultSlice {
 			if foreign.R == nil {
-				foreign.R = &productComboDiscountR{}
-			}
-			foreign.R.PackagedWithProduct = object
-		}
-		return nil
-	}
-
-	for _, foreign := range resultSlice {
-		for _, local := range slice {
-			if local.ID == foreign.PackagedWithProductID {
-				local.R.PackagedWithProductProductComboDiscounts = append(local.R.PackagedWithProductProductComboDiscounts, foreign)
-				if foreign.R == nil {
-					foreign.R = &productComboDiscountR{}
-				}
-				foreign.R.PackagedWithProduct = local
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadProductComboDiscounts allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (productL) LoadProductComboDiscounts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProduct interface{}, mods queries.Applicator) error {
-	var slice []*Product
-	var object *Product
-
-	if singular {
-		object = maybeProduct.(*Product)
-	} else {
-		slice = *maybeProduct.(*[]*Product)
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &productR{}
-		}
-		args = append(args, object.ID)
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &productR{}
-			}
-
-			for _, a := range args {
-				if a == obj.ID {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.ID)
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`product_combo_discount`),
-		qm.WhereIn(`product_combo_discount.product_id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load product_combo_discount")
-	}
-
-	var resultSlice []*ProductComboDiscount
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice product_combo_discount")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on product_combo_discount")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_combo_discount")
-	}
-
-	if len(productComboDiscountAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-	if singular {
-		object.R.ProductComboDiscounts = resultSlice
-		for _, foreign := range resultSlice {
-			if foreign.R == nil {
-				foreign.R = &productComboDiscountR{}
+				foreign.R = &productDiscountRuleR{}
 			}
 			foreign.R.Product = object
 		}
@@ -778,107 +632,9 @@ func (productL) LoadProductComboDiscounts(ctx context.Context, e boil.ContextExe
 	for _, foreign := range resultSlice {
 		for _, local := range slice {
 			if local.ID == foreign.ProductID {
-				local.R.ProductComboDiscounts = append(local.R.ProductComboDiscounts, foreign)
+				local.R.ProductDiscountRules = append(local.R.ProductDiscountRules, foreign)
 				if foreign.R == nil {
-					foreign.R = &productComboDiscountR{}
-				}
-				foreign.R.Product = local
-				break
-			}
-		}
-	}
-
-	return nil
-}
-
-// LoadProductDiscounts allows an eager lookup of values, cached into the
-// loaded structs of the objects. This is for a 1-M or N-M relationship.
-func (productL) LoadProductDiscounts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeProduct interface{}, mods queries.Applicator) error {
-	var slice []*Product
-	var object *Product
-
-	if singular {
-		object = maybeProduct.(*Product)
-	} else {
-		slice = *maybeProduct.(*[]*Product)
-	}
-
-	args := make([]interface{}, 0, 1)
-	if singular {
-		if object.R == nil {
-			object.R = &productR{}
-		}
-		args = append(args, object.ID)
-	} else {
-	Outer:
-		for _, obj := range slice {
-			if obj.R == nil {
-				obj.R = &productR{}
-			}
-
-			for _, a := range args {
-				if a == obj.ID {
-					continue Outer
-				}
-			}
-
-			args = append(args, obj.ID)
-		}
-	}
-
-	if len(args) == 0 {
-		return nil
-	}
-
-	query := NewQuery(
-		qm.From(`product_discounts`),
-		qm.WhereIn(`product_discounts.product_id in ?`, args...),
-	)
-	if mods != nil {
-		mods.Apply(query)
-	}
-
-	results, err := query.QueryContext(ctx, e)
-	if err != nil {
-		return errors.Wrap(err, "failed to eager load product_discounts")
-	}
-
-	var resultSlice []*ProductDiscount
-	if err = queries.Bind(results, &resultSlice); err != nil {
-		return errors.Wrap(err, "failed to bind eager loaded slice product_discounts")
-	}
-
-	if err = results.Close(); err != nil {
-		return errors.Wrap(err, "failed to close results in eager load on product_discounts")
-	}
-	if err = results.Err(); err != nil {
-		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for product_discounts")
-	}
-
-	if len(productDiscountAfterSelectHooks) != 0 {
-		for _, obj := range resultSlice {
-			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
-				return err
-			}
-		}
-	}
-	if singular {
-		object.R.ProductDiscounts = resultSlice
-		for _, foreign := range resultSlice {
-			if foreign.R == nil {
-				foreign.R = &productDiscountR{}
-			}
-			foreign.R.Product = object
-		}
-		return nil
-	}
-
-	for _, foreign := range resultSlice {
-		for _, local := range slice {
-			if local.ID == foreign.ProductID {
-				local.R.ProductDiscounts = append(local.R.ProductDiscounts, foreign)
-				if foreign.R == nil {
-					foreign.R = &productDiscountR{}
+					foreign.R = &productDiscountRuleR{}
 				}
 				foreign.R.Product = local
 				break
@@ -1040,64 +796,11 @@ func (o *Product) AddCartItems(ctx context.Context, exec boil.ContextExecutor, i
 	return nil
 }
 
-// AddPackagedWithProductProductComboDiscounts adds the given related objects to the existing relationships
+// AddProductDiscountRules adds the given related objects to the existing relationships
 // of the product, optionally inserting them as new records.
-// Appends related to o.R.PackagedWithProductProductComboDiscounts.
-// Sets related.R.PackagedWithProduct appropriately.
-func (o *Product) AddPackagedWithProductProductComboDiscounts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ProductComboDiscount) error {
-	var err error
-	for _, rel := range related {
-		if insert {
-			rel.PackagedWithProductID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
-				return errors.Wrap(err, "failed to insert into foreign table")
-			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"product_combo_discount\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"packaged_with_product_id"}),
-				strmangle.WhereClause("\"", "\"", 2, productComboDiscountPrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.PackagedWithProductID = o.ID
-		}
-	}
-
-	if o.R == nil {
-		o.R = &productR{
-			PackagedWithProductProductComboDiscounts: related,
-		}
-	} else {
-		o.R.PackagedWithProductProductComboDiscounts = append(o.R.PackagedWithProductProductComboDiscounts, related...)
-	}
-
-	for _, rel := range related {
-		if rel.R == nil {
-			rel.R = &productComboDiscountR{
-				PackagedWithProduct: o,
-			}
-		} else {
-			rel.R.PackagedWithProduct = o
-		}
-	}
-	return nil
-}
-
-// AddProductComboDiscounts adds the given related objects to the existing relationships
-// of the product, optionally inserting them as new records.
-// Appends related to o.R.ProductComboDiscounts.
+// Appends related to o.R.ProductDiscountRules.
 // Sets related.R.Product appropriately.
-func (o *Product) AddProductComboDiscounts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ProductComboDiscount) error {
+func (o *Product) AddProductDiscountRules(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ProductDiscountRule) error {
 	var err error
 	for _, rel := range related {
 		if insert {
@@ -1107,9 +810,9 @@ func (o *Product) AddProductComboDiscounts(ctx context.Context, exec boil.Contex
 			}
 		} else {
 			updateQuery := fmt.Sprintf(
-				"UPDATE \"product_combo_discount\" SET %s WHERE %s",
+				"UPDATE \"product_discount_rules\" SET %s WHERE %s",
 				strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
-				strmangle.WhereClause("\"", "\"", 2, productComboDiscountPrimaryKeyColumns),
+				strmangle.WhereClause("\"", "\"", 2, productDiscountRulePrimaryKeyColumns),
 			)
 			values := []interface{}{o.ID, rel.ID}
 
@@ -1128,68 +831,15 @@ func (o *Product) AddProductComboDiscounts(ctx context.Context, exec boil.Contex
 
 	if o.R == nil {
 		o.R = &productR{
-			ProductComboDiscounts: related,
+			ProductDiscountRules: related,
 		}
 	} else {
-		o.R.ProductComboDiscounts = append(o.R.ProductComboDiscounts, related...)
+		o.R.ProductDiscountRules = append(o.R.ProductDiscountRules, related...)
 	}
 
 	for _, rel := range related {
 		if rel.R == nil {
-			rel.R = &productComboDiscountR{
-				Product: o,
-			}
-		} else {
-			rel.R.Product = o
-		}
-	}
-	return nil
-}
-
-// AddProductDiscounts adds the given related objects to the existing relationships
-// of the product, optionally inserting them as new records.
-// Appends related to o.R.ProductDiscounts.
-// Sets related.R.Product appropriately.
-func (o *Product) AddProductDiscounts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*ProductDiscount) error {
-	var err error
-	for _, rel := range related {
-		if insert {
-			rel.ProductID = o.ID
-			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
-				return errors.Wrap(err, "failed to insert into foreign table")
-			}
-		} else {
-			updateQuery := fmt.Sprintf(
-				"UPDATE \"product_discounts\" SET %s WHERE %s",
-				strmangle.SetParamNames("\"", "\"", 1, []string{"product_id"}),
-				strmangle.WhereClause("\"", "\"", 2, productDiscountPrimaryKeyColumns),
-			)
-			values := []interface{}{o.ID, rel.ID}
-
-			if boil.IsDebug(ctx) {
-				writer := boil.DebugWriterFrom(ctx)
-				fmt.Fprintln(writer, updateQuery)
-				fmt.Fprintln(writer, values)
-			}
-			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
-				return errors.Wrap(err, "failed to update foreign table")
-			}
-
-			rel.ProductID = o.ID
-		}
-	}
-
-	if o.R == nil {
-		o.R = &productR{
-			ProductDiscounts: related,
-		}
-	} else {
-		o.R.ProductDiscounts = append(o.R.ProductDiscounts, related...)
-	}
-
-	for _, rel := range related {
-		if rel.R == nil {
-			rel.R = &productDiscountR{
+			rel.R = &productDiscountRuleR{
 				Product: o,
 			}
 		} else {

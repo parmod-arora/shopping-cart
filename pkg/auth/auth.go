@@ -50,7 +50,6 @@ func CreateJWT(username string) ([]byte, error) {
 // ValidateJWT validates  jwt
 func ValidateJWT(j jwt.JWT) error {
 	var err error
-
 	signingKey := os.Getenv("SIGNING_PUB_KEY")
 	if signingKey == "" {
 		log.Fatalln("Unable to load SIGNING_PUB_KEY")
@@ -58,13 +57,13 @@ func ValidateJWT(j jwt.JWT) error {
 	bytes := []byte(signingKey)
 	rsaPublicKey, err := crypto.ParseRSAPublicKeyFromPEM(bytes)
 	if err != nil {
+		log.Printf("err is %v", err.Error())
 		return err
 	}
 	err = j.Validate(rsaPublicKey, jws.GetSigningMethod("RS256"))
 	if err != nil {
 		return err
 	}
-
 	return nil
 }
 

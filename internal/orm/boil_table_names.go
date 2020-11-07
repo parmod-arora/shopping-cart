@@ -6,7 +6,7 @@ package orm
 var TableNames = struct {
 	CartItems            string
 	Carts                string
-	ProductComboDiscount string
+	ProductDiscountRules string
 	ProductDiscounts     string
 	Products             string
 	Stocks               string
@@ -14,7 +14,7 @@ var TableNames = struct {
 }{
 	CartItems:            "cart_items",
 	Carts:                "carts",
-	ProductComboDiscount: "product_combo_discount",
+	ProductDiscountRules: "product_discount_rules",
 	ProductDiscounts:     "product_discounts",
 	Products:             "products",
 	Stocks:               "stocks",

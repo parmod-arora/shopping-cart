@@ -49,9 +49,6 @@ func Test_discountService_RetrieveProductDiscounts(t *testing.T) {
 		},
 		{
 			name: "ideal case for product discount",
-			fields: fields{
-				fixture: "testdata/product_discount.sql",
-			},
 			args: args{
 				ctx:       context.Background(),
 				productID: 2,

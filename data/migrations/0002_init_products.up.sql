@@ -39,31 +39,21 @@ CREATE TABLE cart_items (
 
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
 
-CREATE TABLE product_combo_discount ( 
+CREATE TABLE product_discounts (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    product_id BIGINT NOT NULL REFERENCES products(id),
-    product_quantity BIGINT NOT NULL,
-    product_quantity_fn TEXT NOT NULL,
-    discount_type TEXT NOT NULL,
-    discount BIGINT NOT NULL,
-    packaged_with_product_id BIGINT NOT NULL REFERENCES products(id),
-    packaged_with_product_quantity BIGINT NOT NULL,
-    packaged_with_product_quantity_fn TEXT NOT NULL,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    name text NOT NULL,
+    discount_type text NOT NULL,
+    discount bigint NOT NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
-CREATE TABLE product_discounts ( 
+CREATE TABLE product_discount_rules (
     id BIGSERIAL PRIMARY KEY,
-    name TEXT NOT NULL,
-    product_id BIGINT NOT NULL REFERENCES products(id),
-    discount_type TEXT NOT NULL,
-    quantity BIGINT NOT NULL,
-    quantity_fn TEXT NOT NULL,
-    discount BIGINT NOT NULL,
-    effective_start_date TIMESTAMP WITH TIME ZONE NOT NULL,
-    effective_end_date TIMESTAMP WITH TIME ZONE,
-    created_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
-    updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now()
+    product_discount_id bigint NOT NULL REFERENCES product_discounts(id),
+    product_id bigint NOT NULL REFERENCES products(id),
+    product_quantity bigint NOT NULL,
+    product_quantity_fn text NOT NULL,
+    created_at timestamp with time zone NOT NULL DEFAULT now(),
+    updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
