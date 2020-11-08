@@ -41,12 +41,13 @@ const orangeProductName = "Oranges"
 
 // Coupon struct represts the coupon type
 type Coupon struct {
-	ID         int64     `json:"id"`
-	Name       string    `json:"name"`
-	ExpireAt   time.Time `json:"expire_at"`
-	IsExpired  bool      `json:"expire"`
-	ProductID  int64     `json:"product_id"`
-	DiscountID int64     `json:"discount_id"`
+	ID         int64      `json:"id"`
+	Name       string     `json:"name"`
+	ExpireAt   time.Time  `json:"expire_at"`
+	RedeemedAt *time.Time `json:"redeemed_at,omitempty"`
+	IsExpired  bool       `json:"expire"`
+	ProductID  int64      `json:"product_id"`
+	DiscountID int64      `json:"discount_id"`
 }
 
 func (s *couponService) CreateCoupon(ctx context.Context, now time.Time) (*Coupon, error) {
@@ -129,6 +130,7 @@ func TransformOrmToModel(coupon *orm.Coupon) *Coupon {
 		Name:       coupon.Name,
 		DiscountID: coupon.DiscountID,
 		ProductID:  coupon.ProductID,
+		RedeemedAt: coupon.RedeemedAt.Ptr(),
 		IsExpired:  coupon.ExpireAt.Before(time.Now().UTC()),
 		ExpireAt:   coupon.ExpireAt,
 	}

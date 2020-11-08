@@ -8,8 +8,8 @@ VALUES
 -- Apples offer and Pear Banana discount entry
 INSERT INTO discounts("id","name","discount_type","discount","created_at","updated_at")
 VALUES
-(1,E'Apple 10 % discount on 7 or more Apples',E'PERCENTAGE',10,E'2020-11-07 07:05:50.608799+00',E'2020-11-07 07:05:50.608799+00'),
-(2,E'Combo discount on 4Pears and 2 Banana',E'PERCENTAGE',30,E'2020-11-07 07:13:59.881972+00',E'2020-11-07 07:13:59.881972+00');
+(1,E'10% discount on 7 or more apples',E'PERCENTAGE',10,E'2020-11-07 07:05:50.608799+00',E'2020-11-07 07:05:50.608799+00'),
+(2,E'30% Combo discount on 4 pears and 2 bananas',E'PERCENTAGE',30,E'2020-11-07 07:13:59.881972+00',E'2020-11-07 07:13:59.881972+00');
 
 -- Apple and Pears|banana discount rules
 INSERT INTO discount_rules("id","product_id","product_quantity","product_quantity_fn","created_at","updated_at","discount_id")
@@ -20,6 +20,6 @@ VALUES
 
 -- Orange Discount entry and rules
 INSERT INTO discounts("id","name","discount_type","discount","created_at","updated_at")
-VALUES (3,E'Coupon discount on oranges 30%',E'PERCENTAGE',30,E'2020-11-07 17:37:25.873064+00',E'2020-11-07 17:37:25.873064+00');
+VALUES (3,E'30% coupon discount on oranges',E'PERCENTAGE',30,E'2020-11-07 17:37:25.873064+00',E'2020-11-07 17:37:25.873064+00');
 INSERT INTO discount_rules("id","discount_id","product_id","product_quantity","product_quantity_fn","created_at","updated_at")
 VALUES (4,3,4,1,E'GTE',E'2020-11-07 17:48:39.443301+00',E'2020-11-07 17:48:39.443301+00');

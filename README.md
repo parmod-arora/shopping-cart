@@ -13,9 +13,11 @@ Develop an online eCommerce store selling fruit, which contains the following fe
   - Adjust quantity.
   - Delete items from the cart.
   - Apply coupons.
+
 Checkout your cart.
 Mocked purchase (a payment gateway is not required, but a route must exist in the backend validating the payment).
 An address does not need to be entered.
+
 Requirements
 
  Architecture diagrams.

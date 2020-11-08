@@ -10,6 +10,10 @@ var TableNames = struct {
 	Coupons       string
 	DiscountRules string
 	Discounts     string
+	OrderCoupons  string
+	OrderDiscount string
+	OrderItems    string
+	Orders        string
 	Products      string
 	Stocks        string
 	Users         string
@@ -20,6 +24,10 @@ var TableNames = struct {
 	Coupons:       "coupons",
 	DiscountRules: "discount_rules",
 	Discounts:     "discounts",
+	OrderCoupons:  "order_coupons",
+	OrderDiscount: "order_discount",
+	OrderItems:    "order_items",
+	Orders:        "orders",
 	Products:      "products",
 	Stocks:        "stocks",
 	Users:         "users",

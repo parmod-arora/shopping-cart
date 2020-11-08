@@ -23,10 +23,11 @@ type Service interface {
 	AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error)
 	ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error
 	RemoveCouponFromCart(ctx context.Context, couponID, cartID int64) error
+	CheckoutCart(ctx context.Context, usercart *UserCart) error
 }
 
 type cartService struct {
-	DB              *sql.DB
+	db              *sql.DB
 	discountService discounts.Service
 	couponService   coupons.Service
 }
@@ -34,37 +35,16 @@ type cartService struct {
 // NewCartService Create New cart service
 func NewCartService(db *sql.DB, service discounts.Service, couponService coupons.Service) Service {
 	return &cartService{
-		DB:              db,
+		db:              db,
 		discountService: service,
 		couponService:   couponService,
 	}
 }
 
-// UserCart user cart for checkout page
-type UserCart struct {
-	ID                int64           `json:"id,omitempty"`
-	UserID            int64           `json:"user_id,omitempty"`
-	SubTotalAmount    int64           `json:"sub_total_amount,omitempty"`
-	TotalSavingAmount int64           `json:"total_saving_amount,omitempty"`
-	TotalAmount       int64           `json:"total_amount,omitempty"`
-	Coupon            *coupons.Coupon `json:"coupon,omitempty"`
-	CartItems         []CartItem      `json:"cart_items,omitempty"`
-	LineItems         []LineItem      `json:"line_items,omitempty"`
-}
-
-// CartItem items added by user
-type CartItem struct {
-	ID       int64            `json:"id,omitempty"`
-	CartID   int64            `json:"cart_id,omitempty"`
-	Product  products.Product `json:"product,omitempty"`
-	Quantity int64            `json:"quantity,omitempty"`
-	SubTotal int64            `json:"sub_total"`
-}
-
 // AddItemCart add product in cart by user
 func (s *cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
 	logger := loglib.GetLogger(ctx)
-	tx, err := s.DB.Begin()
+	tx, err := s.db.Begin()
 	if err != nil {
 		return nil, err
 	}
@@ -94,31 +74,53 @@ func (s *cartService) AddItemCart(ctx context.Context, userID int64, productID i
 	return s.GetUserCart(ctx, userID)
 }
 
-func itemQuantityMatchesWithDiscountQuantity(discountQuantity discounts.Quantity, itemQuantity int64) bool {
-	switch discountQuantity.Function {
-	case discounts.EQ:
-		if discountQuantity.Value == itemQuantity {
-			return true
-		}
-	case discounts.GTE:
-		if discountQuantity.Value <= itemQuantity {
-			return true
-		}
-	case discounts.LTE:
-		if discountQuantity.Value >= itemQuantity {
-			return true
+func (s *cartService) applyDiscountsOnCart(ctx context.Context, usercart *UserCart) (*UserCart, error) {
+	productDiscountMap := make(map[int64][]discounts.ProductDiscount)
+	productMap := make(map[int64]*CartItem)
+	for _, item := range usercart.CartItems {
+		item := item
+		if _, ok := productMap[item.Product.ID]; !ok {
+			productMap[item.Product.ID] = &item
+			discounts, err := s.discountService.RetrieveProductDiscounts(ctx, item.Product.ID)
+			if err != nil {
+				return nil, err
+			}
+			productDiscountMap[item.Product.ID] = discounts
 		}
 	}
-	return false
+
+	if usercart.Coupon != nil && usercart.Coupon.ID > 0 {
+		// get coupn discount on cart
+		couponDiscount, err := s.getCouponDiscountOnCart(ctx, usercart, usercart.Coupon.ID)
+		if err != nil {
+			return nil, err
+		}
+		if couponDiscount != nil {
+			for _, rule := range couponDiscount.Rules {
+				discounts, ok := productDiscountMap[rule.ProductID]
+				if ok {
+					discounts = append(discounts, *couponDiscount)
+				}
+				productDiscountMap[rule.ProductID] = discounts
+			}
+		}
+	}
+
+	for _, productDiscounts := range productDiscountMap {
+		for _, productDiscount := range productDiscounts {
+			productDiscount := productDiscount
+			applyDiscountOnCart(ctx, productMap, usercart, productDiscount)
+		}
+	}
+	return usercart, nil
 }
 
 func (s *cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, error) {
-	boil.DebugMode = true
 	cart, err := orm.Carts(
 		qm.Load(qm.Rels(orm.CartRels.CartItems, orm.CartItemRels.Product)),
 		qm.Load(qm.Rels(orm.CartRels.CartCoupons, orm.CartCouponRels.Coupon)),
 		qm.Where(orm.CartColumns.UserID+"=?", userID),
-	).One(ctx, s.DB)
+	).One(ctx, s.db)
 	if err != nil {
 		if err == sql.ErrNoRows {
 			return &UserCart{}, nil
@@ -157,6 +159,92 @@ func (s *cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart,
 
 	usercart.TotalAmount = usercart.SubTotalAmount - usercart.TotalSavingAmount
 	return usercart, nil
+}
+
+func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error {
+
+	userCartID, err := getORCreateCartEntry(ctx, s.db, userID)
+	if err != nil {
+		return err
+	}
+
+	if cartID != userCartID {
+		return errorcode.ValidationError{Err: errors.New("invalid-cart-id")}
+	}
+
+	coupon, err := s.couponService.RetrieveCouponByName(ctx, couponName)
+	if err != nil || coupon == nil {
+		return errorcode.ValidationError{Err: errors.New("invalid-coupon")}
+	}
+
+	if coupon.IsExpired {
+		return errorcode.ValidationError{Err: errors.New("expired-coupon")}
+	}
+
+	if coupon.RedeemedAt != nil {
+		return errorcode.ValidationError{Err: errors.New("redeemed-coupon")}
+	}
+
+	usercart, err := s.GetUserCart(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	productDiscount, err := s.discountService.FetchDiscountByID(ctx, coupon.DiscountID)
+	if err != nil {
+		return err
+	}
+	if !(len(productDiscount.Rules) > 0) {
+		return errorcode.ValidationError{Err: errors.New("invalid-coupon-rules")}
+	}
+
+	if usercart == nil {
+		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+	}
+	var validDiscount *discounts.ProductDiscount
+	for _, item := range usercart.CartItems {
+		// check discount is of single type
+		rule := productDiscount.Rules[0]
+		ruleQuantity := discounts.Quantity{
+			Function: rule.ProductQuantityFN,
+			Value:    rule.ProductQuantity,
+		}
+		if itemQuantityMatchesWithDiscountQuantity(ruleQuantity, item.Quantity) {
+			validDiscount = &productDiscount
+			break
+		}
+	}
+
+	if validDiscount == nil {
+		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+	}
+
+	cartCoupon := &orm.CartCoupon{
+		CartID:   cartID,
+		CouponID: coupon.ID,
+	}
+	if err := cartCoupon.Insert(ctx, s.db, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
+}
+
+func itemQuantityMatchesWithDiscountQuantity(discountQuantity discounts.Quantity, itemQuantity int64) bool {
+	switch discountQuantity.Function {
+	case discounts.EQ:
+		if discountQuantity.Value == itemQuantity {
+			return true
+		}
+	case discounts.GTE:
+		if discountQuantity.Value <= itemQuantity {
+			return true
+		}
+	case discounts.LTE:
+		if discountQuantity.Value >= itemQuantity {
+			return true
+		}
+	}
+	return false
 }
 
 func transformOrmToCartItem(cartItem *orm.CartItem) CartItem {
@@ -214,64 +302,6 @@ func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID i
 		return 0, err
 	}
 	return cart.ID, nil
-}
-
-// LineItem lineitem for checkout page
-type LineItem struct {
-	ProductDiscount *discounts.ProductDiscount `json:"discount_applied"`
-	CartItems       []CartItem                 `json:"discount_applied_on"`
-	DiscountAmount  int64                      `json:"discount_amount"`
-	Quantity        int64                      `json:"quantity"`
-}
-
-// ComboCartItem combo cart item
-type ComboCartItem struct {
-	CartItem           CartItem `json:"cart_item,omitempty"`
-	PackedWithCartItem CartItem `json:"packed_with_cart_item,omitempty"`
-}
-
-func (s *cartService) applyDiscountsOnCart(ctx context.Context, usercart *UserCart) (*UserCart, error) {
-	logger := loglib.GetLogger(ctx)
-	productDiscountMap := make(map[int64][]discounts.ProductDiscount)
-	productMap := make(map[int64]*CartItem)
-	for _, item := range usercart.CartItems {
-		item := item
-		if _, ok := productMap[item.Product.ID]; !ok {
-			productMap[item.Product.ID] = &item
-			discounts, err := s.discountService.RetrieveProductDiscounts(ctx, item.Product.ID)
-			if err != nil {
-				return nil, err
-			}
-			productDiscountMap[item.Product.ID] = discounts
-		}
-	}
-
-	if usercart.Coupon != nil && usercart.Coupon.ID > 0 {
-		// get coupn discount on cart
-		couponDiscount, err := s.getCouponDiscountOnCart(ctx, usercart, usercart.Coupon.ID)
-		if err != nil {
-			return nil, err
-		}
-		if couponDiscount != nil {
-			for _, rule := range couponDiscount.Rules {
-				discounts, ok := productDiscountMap[rule.ProductID]
-				if ok {
-					discounts = append(discounts, *couponDiscount)
-				}
-				productDiscountMap[rule.ProductID] = discounts
-			}
-		}
-	}
-
-	logger.Infof("productDiscountMap %#v", productDiscountMap)
-	for productID, productDiscounts := range productDiscountMap {
-		logger.Infof("%v, %v", productID, productDiscounts)
-		for _, productDiscount := range productDiscounts {
-			productDiscount := productDiscount
-			applyDiscountOnCart(ctx, productMap, usercart, productDiscount)
-		}
-	}
-	return usercart, nil
 }
 
 func applyDiscountOnCart(ctx context.Context, productMap map[int64]*CartItem, usercart *UserCart, discount discounts.ProductDiscount) (*UserCart, error) {
@@ -373,68 +403,4 @@ func applyComboDiscount(ctx context.Context, productMap map[int64]*CartItem, use
 		}
 	}
 	return usercart
-}
-
-func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error {
-
-	userCartID, err := getORCreateCartEntry(ctx, s.DB, userID)
-	if err != nil {
-		return err
-	}
-
-	if cartID != userCartID {
-		return errorcode.ValidationError{Err: errors.New("invalid-cart-id")}
-	}
-
-	coupon, err := s.couponService.RetrieveCouponByName(ctx, couponName)
-	if err != nil || coupon == nil {
-		return errorcode.ValidationError{Err: errors.New("invalid-coupon")}
-	}
-
-	if coupon.IsExpired {
-		return errorcode.ValidationError{Err: errors.New("expired-coupon")}
-	}
-
-	usercart, err := s.GetUserCart(ctx, userID)
-	if err != nil {
-		return err
-	}
-
-	productDiscount, err := s.discountService.FetchDiscountByID(ctx, coupon.DiscountID)
-	if err != nil {
-		return err
-	}
-	if !(len(productDiscount.Rules) > 0) {
-		return errorcode.ValidationError{Err: errors.New("invalid-coupon-rules")}
-	}
-
-	if usercart == nil {
-		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
-	}
-	var validDiscount *discounts.ProductDiscount
-	for _, item := range usercart.CartItems {
-		// check discount is of single type
-		rule := productDiscount.Rules[0]
-		ruleQuantity := discounts.Quantity{
-			Function: rule.ProductQuantityFN,
-			Value:    rule.ProductQuantity,
-		}
-		if itemQuantityMatchesWithDiscountQuantity(ruleQuantity, item.Quantity) {
-			validDiscount = &productDiscount
-			break
-		}
-	}
-
-	if validDiscount == nil {
-		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
-	}
-
-	cartCoupon := &orm.CartCoupon{
-		CartID:   cartID,
-		CouponID: coupon.ID,
-	}
-	if err := cartCoupon.Insert(ctx, s.DB, boil.Infer()); err != nil {
-		return err
-	}
-	return nil
 }

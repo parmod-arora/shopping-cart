@@ -57,3 +57,6 @@ CREATE TABLE discount_rules (
     created_at timestamp with time zone NOT NULL DEFAULT now(),
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
+
+CREATE INDEX discount_rules_product_id_idx ON discount_rules(product_id);
+CREATE INDEX discount_rules_discount_id_idx ON discount_rules(discount_id);

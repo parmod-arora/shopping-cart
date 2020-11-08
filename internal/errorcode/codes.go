@@ -26,3 +26,6 @@ const AuthHeaderReadFailed = "AuthHeaderReadFailed"
 
 // AuthValidateFailed error
 const AuthValidateFailed = "AuthValidateFailed"
+
+// AmountMisMatch error
+const AmountMisMatch = "amount_mismatch"

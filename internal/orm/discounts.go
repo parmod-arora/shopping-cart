@@ -70,17 +70,20 @@ var DiscountWhere = struct {
 
 // DiscountRels is where relationship names are stored.
 var DiscountRels = struct {
-	Coupons       string
-	DiscountRules string
+	Coupons        string
+	DiscountRules  string
+	OrderDiscounts string
 }{
-	Coupons:       "Coupons",
-	DiscountRules: "DiscountRules",
+	Coupons:        "Coupons",
+	DiscountRules:  "DiscountRules",
+	OrderDiscounts: "OrderDiscounts",
 }
 
 // discountR is where relationships are stored.
 type discountR struct {
-	Coupons       CouponSlice       `boil:"Coupons" json:"Coupons" toml:"Coupons" yaml:"Coupons"`
-	DiscountRules DiscountRuleSlice `boil:"DiscountRules" json:"DiscountRules" toml:"DiscountRules" yaml:"DiscountRules"`
+	Coupons        CouponSlice        `boil:"Coupons" json:"Coupons" toml:"Coupons" yaml:"Coupons"`
+	DiscountRules  DiscountRuleSlice  `boil:"DiscountRules" json:"DiscountRules" toml:"DiscountRules" yaml:"DiscountRules"`
+	OrderDiscounts OrderDiscountSlice `boil:"OrderDiscounts" json:"OrderDiscounts" toml:"OrderDiscounts" yaml:"OrderDiscounts"`
 }
 
 // NewStruct creates a new relationship struct
@@ -415,6 +418,27 @@ func (o *Discount) DiscountRules(mods ...qm.QueryMod) discountRuleQuery {
 	return query
 }
 
+// OrderDiscounts retrieves all the order_discount's OrderDiscounts with an executor.
+func (o *Discount) OrderDiscounts(mods ...qm.QueryMod) orderDiscountQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"order_discount\".\"discount_id\"=?", o.ID),
+	)
+
+	query := OrderDiscounts(queryMods...)
+	queries.SetFrom(query.Query, "\"order_discount\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"order_discount\".*"})
+	}
+
+	return query
+}
+
 // LoadCoupons allows an eager lookup of values, cached into the
 // loaded structs of the objects. This is for a 1-M or N-M relationship.
 func (discountL) LoadCoupons(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDiscount interface{}, mods queries.Applicator) error {
@@ -611,6 +635,104 @@ func (discountL) LoadDiscountRules(ctx context.Context, e boil.ContextExecutor, 
 	return nil
 }
 
+// LoadOrderDiscounts allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (discountL) LoadOrderDiscounts(ctx context.Context, e boil.ContextExecutor, singular bool, maybeDiscount interface{}, mods queries.Applicator) error {
+	var slice []*Discount
+	var object *Discount
+
+	if singular {
+		object = maybeDiscount.(*Discount)
+	} else {
+		slice = *maybeDiscount.(*[]*Discount)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &discountR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &discountR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`order_discount`),
+		qm.WhereIn(`order_discount.discount_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load order_discount")
+	}
+
+	var resultSlice []*OrderDiscount
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice order_discount")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on order_discount")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for order_discount")
+	}
+
+	if len(orderDiscountAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.OrderDiscounts = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &orderDiscountR{}
+			}
+			foreign.R.Discount = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.DiscountID {
+				local.R.OrderDiscounts = append(local.R.OrderDiscounts, foreign)
+				if foreign.R == nil {
+					foreign.R = &orderDiscountR{}
+				}
+				foreign.R.Discount = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
 // AddCoupons adds the given related objects to the existing relationships
 // of the discount, optionally inserting them as new records.
 // Appends related to o.R.Coupons.
@@ -708,6 +830,59 @@ func (o *Discount) AddDiscountRules(ctx context.Context, exec boil.ContextExecut
 	for _, rel := range related {
 		if rel.R == nil {
 			rel.R = &discountRuleR{
+				Discount: o,
+			}
+		} else {
+			rel.R.Discount = o
+		}
+	}
+	return nil
+}
+
+// AddOrderDiscounts adds the given related objects to the existing relationships
+// of the discount, optionally inserting them as new records.
+// Appends related to o.R.OrderDiscounts.
+// Sets related.R.Discount appropriately.
+func (o *Discount) AddOrderDiscounts(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*OrderDiscount) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.DiscountID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"order_discount\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"discount_id"}),
+				strmangle.WhereClause("\"", "\"", 2, orderDiscountPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.DiscountID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &discountR{
+			OrderDiscounts: related,
+		}
+	} else {
+		o.R.OrderDiscounts = append(o.R.OrderDiscounts, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &orderDiscountR{
 				Discount: o,
 			}
 		} else {

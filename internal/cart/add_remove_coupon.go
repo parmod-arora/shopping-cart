@@ -4,27 +4,14 @@ import (
 	"encoding/json"
 	"net/http"
 
-	"cinemo.com/shoping-cart/framework/loglib"
 	"cinemo.com/shoping-cart/framework/web/httpresponse"
-	"cinemo.com/shoping-cart/framework/web/middleware"
 	"cinemo.com/shoping-cart/internal/errorcode"
 	"cinemo.com/shoping-cart/internal/users"
 	"cinemo.com/shoping-cart/pkg/auth"
-	"github.com/gorilla/mux"
 )
 
-// Handlers handles users routes
-func Handlers(r *mux.Router, service Service, userService users.Service) {
-	r.Use(middleware.Authorize)
-	r.Path("/items").Methods(http.MethodGet).HandlerFunc(RetrieveUserCart(service, userService))
-	r.Path("/items").Methods(http.MethodPut).HandlerFunc(AddCartItem(service, userService))
-	r.Path("/coupon/add").Methods(http.MethodPost).HandlerFunc(ApplyCouponOnCart(service, userService))
-	r.Path("/coupon/remove").Methods(http.MethodPost).HandlerFunc(RemoveCouponFromCart(service, userService))
-	r.Path("/checkout").Methods(http.MethodPost).HandlerFunc(Checkout(service, userService))
-}
-
-// RetrieveUserCart retrieve User cart from DB
-func RetrieveUserCart(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
+// ApplyCouponOnCart apply coupon on cart
+func ApplyCouponOnCart(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
@@ -37,6 +24,24 @@ func RetrieveUserCart(service Service, userService users.Service) func(w http.Re
 		user, err := userService.RetrieveUserByUsername(ctx, username)
 		if err != nil || user == nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		// unmarshal request
+		req := applyCouponOnCartRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&req); (err != nil || req == applyCouponOnCartRequest{}) {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		// validate request
+		if err := req.Validate(); err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		if err := service.ApplyCouponOnCart(ctx, req.CouponName, req.CartID, user.ID); err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, errorcode.InternalError, err.Error())
 			return
 		}
 
@@ -49,11 +54,11 @@ func RetrieveUserCart(service Service, userService users.Service) func(w http.Re
 	}
 }
 
-// AddCartItem add item in user cart
-func AddCartItem(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
+// RemoveCouponFromCart remove coupon from cart
+func RemoveCouponFromCart(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
-		logger := loglib.GetLogger(ctx)
+
 		username, err := auth.GetLoggedInUsername(r)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusForbidden, errorcode.ErrorsInRequestData, err.Error())
@@ -66,10 +71,9 @@ func AddCartItem(service Service, userService users.Service) func(w http.Respons
 			return
 		}
 
-		logger.Infof("user is %v", user.Username)
 		// unmarshal request
-		req := addCartItemRequest{}
-		if err := json.NewDecoder(r.Body).Decode(&req); (err != nil || req == addCartItemRequest{}) {
+		req := removeCouponFromCartRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&req); (err != nil || req == removeCouponFromCartRequest{}) {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
 			return
 		}
@@ -80,12 +84,16 @@ func AddCartItem(service Service, userService users.Service) func(w http.Respons
 			return
 		}
 
-		cart, err := service.AddItemCart(ctx, user.ID, req.ProductID, req.Quantity)
+		if err := service.RemoveCouponFromCart(ctx, req.CouponID, req.CartID); err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, errorcode.InternalError, err.Error())
+			return
+		}
+
+		cart, err := service.GetUserCart(ctx, user.ID)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, "internal_error", err.Error())
 			return
 		}
-
 		httpresponse.RespondJSON(w, http.StatusOK, cart, nil)
 	}
 }

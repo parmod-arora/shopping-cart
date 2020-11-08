@@ -36,6 +36,6 @@ func (s *cartService) RemoveCouponFromCart(ctx context.Context, couponID, cartID
 	_, err := orm.CartCoupons(
 		qm.Where(orm.CartCouponColumns.CartID+"=?", cartID),
 		qm.And(orm.CartCouponColumns.CouponID+"=?", couponID),
-	).DeleteAll(ctx, s.DB)
+	).DeleteAll(ctx, s.db)
 	return err
 }
