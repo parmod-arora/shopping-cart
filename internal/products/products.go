@@ -6,11 +6,13 @@ import (
 
 	"cinemo.com/shoping-cart/internal/errorcode"
 	"cinemo.com/shoping-cart/internal/orm"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 // Service is the interface to expose inventory functions
 type Service interface {
 	RetrieveProducts(ctx context.Context) ([]Product, error)
+	RetrieveProductIDByName(ctx context.Context, name string) (int64, error)
 }
 
 type productService struct {
@@ -22,6 +24,14 @@ func NewProductService(db *sql.DB) Service {
 	return &productService{
 		DB: db,
 	}
+}
+
+func (s *productService) RetrieveProductIDByName(ctx context.Context, name string) (int64, error) {
+	product, err := orm.Products(qm.Where(orm.ProductColumns.Name+"=?", name)).One(ctx, s.DB)
+	if err != nil {
+		return 0, err
+	}
+	return product.ID, nil
 }
 
 func (s *productService) RetrieveProducts(ctx context.Context) ([]Product, error) {

@@ -4,19 +4,23 @@
 package orm
 
 var TableNames = struct {
-	CartItems            string
-	Carts                string
-	ProductDiscountRules string
-	ProductDiscounts     string
-	Products             string
-	Stocks               string
-	Users                string
+	CartCoupons   string
+	CartItems     string
+	Carts         string
+	Coupons       string
+	DiscountRules string
+	Discounts     string
+	Products      string
+	Stocks        string
+	Users         string
 }{
-	CartItems:            "cart_items",
-	Carts:                "carts",
-	ProductDiscountRules: "product_discount_rules",
-	ProductDiscounts:     "product_discounts",
-	Products:             "products",
-	Stocks:               "stocks",
-	Users:                "users",
+	CartCoupons:   "cart_coupons",
+	CartItems:     "cart_items",
+	Carts:         "carts",
+	Coupons:       "coupons",
+	DiscountRules: "discount_rules",
+	Discounts:     "discounts",
+	Products:      "products",
+	Stocks:        "stocks",
+	Users:         "users",
 }

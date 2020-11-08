@@ -6,7 +6,9 @@ import (
 	"testing"
 
 	"cinemo.com/shoping-cart/internal/cart"
-	"cinemo.com/shoping-cart/internal/discount"
+	"cinemo.com/shoping-cart/internal/coupons"
+	"cinemo.com/shoping-cart/internal/discounts"
+	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/pkg/testutil"
 	"cinemo.com/shoping-cart/pkg/trace"
 	"github.com/google/go-cmp/cmp"
@@ -42,7 +44,7 @@ func Test_orderService_GetUserCart(t *testing.T) {
 		want    *cart.UserCart
 	}{
 		{
-			name:    "test sql query",
+			name:    "get user cart",
 			fixture: "testdata/user_cart.sql",
 			args: args{
 				ctx:    context.Background(),
@@ -54,7 +56,7 @@ func Test_orderService_GetUserCart(t *testing.T) {
 			want: &cart.UserCart{
 				LineItems: []cart.LineItem{
 					{
-						ProductDiscount: &discount.ProductDiscount{
+						ProductDiscount: &discounts.ProductDiscount{
 							ID:           1,
 							Name:         "Apple 10 % discount on 7 or more Apples",
 							Discount:     10,
@@ -65,7 +67,7 @@ func Test_orderService_GetUserCart(t *testing.T) {
 						Quantity:       1,
 					},
 					{
-						ProductDiscount: &discount.ProductDiscount{
+						ProductDiscount: &discounts.ProductDiscount{
 							ID:           2,
 							Name:         "Combo discount on 4Pears and 2 Banana",
 							Discount:     30,
@@ -81,8 +83,14 @@ func Test_orderService_GetUserCart(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testutil.LoadFixture(tt.fields.DB, tt.fixture)
-			s := cart.NewCartService(tt.fields.DB, discount.NewDiscountService(tt.fields.DB))
+			err := testutil.LoadFixture(tt.fields.DB, tt.fixture)
+			if err != nil {
+				t.Errorf("seed error %v", err.Error())
+			}
+			discountsService := discounts.NewDiscountService(tt.fields.DB)
+			productService := products.NewProductService(tt.fields.DB)
+			couponService := coupons.NewCouponService(tt.fields.DB, productService, discountsService)
+			s := cart.NewCartService(tt.fields.DB, discountsService, couponService)
 			got, err := s.GetUserCart(tt.args.ctx, tt.args.userID)
 			if (err != nil) != tt.wantErr {
 				t.Errorf("orderService.GetUserCart() error = %v, wantErr %v", err, tt.wantErr)

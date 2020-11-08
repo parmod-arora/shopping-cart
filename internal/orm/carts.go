@@ -88,17 +88,20 @@ var CartWhere = struct {
 
 // CartRels is where relationship names are stored.
 var CartRels = struct {
-	User      string
-	CartItems string
+	User        string
+	CartCoupons string
+	CartItems   string
 }{
-	User:      "User",
-	CartItems: "CartItems",
+	User:        "User",
+	CartCoupons: "CartCoupons",
+	CartItems:   "CartItems",
 }
 
 // cartR is where relationships are stored.
 type cartR struct {
-	User      *User         `boil:"User" json:"User" toml:"User" yaml:"User"`
-	CartItems CartItemSlice `boil:"CartItems" json:"CartItems" toml:"CartItems" yaml:"CartItems"`
+	User        *User           `boil:"User" json:"User" toml:"User" yaml:"User"`
+	CartCoupons CartCouponSlice `boil:"CartCoupons" json:"CartCoupons" toml:"CartCoupons" yaml:"CartCoupons"`
+	CartItems   CartItemSlice   `boil:"CartItems" json:"CartItems" toml:"CartItems" yaml:"CartItems"`
 }
 
 // NewStruct creates a new relationship struct
@@ -405,6 +408,27 @@ func (o *Cart) User(mods ...qm.QueryMod) userQuery {
 	return query
 }
 
+// CartCoupons retrieves all the cart_coupon's CartCoupons with an executor.
+func (o *Cart) CartCoupons(mods ...qm.QueryMod) cartCouponQuery {
+	var queryMods []qm.QueryMod
+	if len(mods) != 0 {
+		queryMods = append(queryMods, mods...)
+	}
+
+	queryMods = append(queryMods,
+		qm.Where("\"cart_coupons\".\"cart_id\"=?", o.ID),
+	)
+
+	query := CartCoupons(queryMods...)
+	queries.SetFrom(query.Query, "\"cart_coupons\"")
+
+	if len(queries.GetSelect(query.Query)) == 0 {
+		queries.SetSelect(query.Query, []string{"\"cart_coupons\".*"})
+	}
+
+	return query
+}
+
 // CartItems retrieves all the cart_item's CartItems with an executor.
 func (o *Cart) CartItems(mods ...qm.QueryMod) cartItemQuery {
 	var queryMods []qm.QueryMod
@@ -520,6 +544,104 @@ func (cartL) LoadUser(ctx context.Context, e boil.ContextExecutor, singular bool
 				local.R.User = foreign
 				if foreign.R == nil {
 					foreign.R = &userR{}
+				}
+				foreign.R.Cart = local
+				break
+			}
+		}
+	}
+
+	return nil
+}
+
+// LoadCartCoupons allows an eager lookup of values, cached into the
+// loaded structs of the objects. This is for a 1-M or N-M relationship.
+func (cartL) LoadCartCoupons(ctx context.Context, e boil.ContextExecutor, singular bool, maybeCart interface{}, mods queries.Applicator) error {
+	var slice []*Cart
+	var object *Cart
+
+	if singular {
+		object = maybeCart.(*Cart)
+	} else {
+		slice = *maybeCart.(*[]*Cart)
+	}
+
+	args := make([]interface{}, 0, 1)
+	if singular {
+		if object.R == nil {
+			object.R = &cartR{}
+		}
+		args = append(args, object.ID)
+	} else {
+	Outer:
+		for _, obj := range slice {
+			if obj.R == nil {
+				obj.R = &cartR{}
+			}
+
+			for _, a := range args {
+				if a == obj.ID {
+					continue Outer
+				}
+			}
+
+			args = append(args, obj.ID)
+		}
+	}
+
+	if len(args) == 0 {
+		return nil
+	}
+
+	query := NewQuery(
+		qm.From(`cart_coupons`),
+		qm.WhereIn(`cart_coupons.cart_id in ?`, args...),
+	)
+	if mods != nil {
+		mods.Apply(query)
+	}
+
+	results, err := query.QueryContext(ctx, e)
+	if err != nil {
+		return errors.Wrap(err, "failed to eager load cart_coupons")
+	}
+
+	var resultSlice []*CartCoupon
+	if err = queries.Bind(results, &resultSlice); err != nil {
+		return errors.Wrap(err, "failed to bind eager loaded slice cart_coupons")
+	}
+
+	if err = results.Close(); err != nil {
+		return errors.Wrap(err, "failed to close results in eager load on cart_coupons")
+	}
+	if err = results.Err(); err != nil {
+		return errors.Wrap(err, "error occurred during iteration of eager loaded relations for cart_coupons")
+	}
+
+	if len(cartCouponAfterSelectHooks) != 0 {
+		for _, obj := range resultSlice {
+			if err := obj.doAfterSelectHooks(ctx, e); err != nil {
+				return err
+			}
+		}
+	}
+	if singular {
+		object.R.CartCoupons = resultSlice
+		for _, foreign := range resultSlice {
+			if foreign.R == nil {
+				foreign.R = &cartCouponR{}
+			}
+			foreign.R.Cart = object
+		}
+		return nil
+	}
+
+	for _, foreign := range resultSlice {
+		for _, local := range slice {
+			if local.ID == foreign.CartID {
+				local.R.CartCoupons = append(local.R.CartCoupons, foreign)
+				if foreign.R == nil {
+					foreign.R = &cartCouponR{}
 				}
 				foreign.R.Cart = local
 				break
@@ -672,6 +794,59 @@ func (o *Cart) SetUser(ctx context.Context, exec boil.ContextExecutor, insert bo
 		related.R.Cart = o
 	}
 
+	return nil
+}
+
+// AddCartCoupons adds the given related objects to the existing relationships
+// of the cart, optionally inserting them as new records.
+// Appends related to o.R.CartCoupons.
+// Sets related.R.Cart appropriately.
+func (o *Cart) AddCartCoupons(ctx context.Context, exec boil.ContextExecutor, insert bool, related ...*CartCoupon) error {
+	var err error
+	for _, rel := range related {
+		if insert {
+			rel.CartID = o.ID
+			if err = rel.Insert(ctx, exec, boil.Infer()); err != nil {
+				return errors.Wrap(err, "failed to insert into foreign table")
+			}
+		} else {
+			updateQuery := fmt.Sprintf(
+				"UPDATE \"cart_coupons\" SET %s WHERE %s",
+				strmangle.SetParamNames("\"", "\"", 1, []string{"cart_id"}),
+				strmangle.WhereClause("\"", "\"", 2, cartCouponPrimaryKeyColumns),
+			)
+			values := []interface{}{o.ID, rel.ID}
+
+			if boil.IsDebug(ctx) {
+				writer := boil.DebugWriterFrom(ctx)
+				fmt.Fprintln(writer, updateQuery)
+				fmt.Fprintln(writer, values)
+			}
+			if _, err = exec.ExecContext(ctx, updateQuery, values...); err != nil {
+				return errors.Wrap(err, "failed to update foreign table")
+			}
+
+			rel.CartID = o.ID
+		}
+	}
+
+	if o.R == nil {
+		o.R = &cartR{
+			CartCoupons: related,
+		}
+	} else {
+		o.R.CartCoupons = append(o.R.CartCoupons, related...)
+	}
+
+	for _, rel := range related {
+		if rel.R == nil {
+			rel.R = &cartCouponR{
+				Cart: o,
+			}
+		} else {
+			rel.R.Cart = o
+		}
+	}
 	return nil
 }
 

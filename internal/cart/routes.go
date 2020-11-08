@@ -21,6 +21,66 @@ func Handlers(r *mux.Router, service Service, userService users.Service) {
 	r.Use(middleware.Authorize)
 	r.Path("/items").Methods(http.MethodGet).HandlerFunc(RetrieveUserCart(service, userService))
 	r.Path("/items").Methods(http.MethodPut).HandlerFunc(AddCartItem(service, userService))
+	r.Path("/coupon").Methods(http.MethodPost).HandlerFunc(ApplyCouponOnCart(service, userService))
+}
+
+type applyCouponOnCartRequest struct {
+	CouponName string `json:"coupon"`
+	CartID     int64  `json:"cart_id"`
+}
+
+func (req *applyCouponOnCartRequest) Validate() error {
+	var errorArray []string
+	validator.CheckRule(&errorArray, len(req.CouponName) > 0, "coupon is mandatory")
+	validator.CheckRule(&errorArray, req.CartID > 0, "cart_id should be greater than 0")
+	if len(errorArray) > 0 {
+		return errors.New(strings.Join(errorArray, "; "))
+	}
+	return nil
+}
+
+// ApplyCouponOnCart apply coupon on cart
+func ApplyCouponOnCart(service Service, userService users.Service) func(w http.ResponseWriter, r *http.Request) {
+	return func(w http.ResponseWriter, r *http.Request) {
+		ctx := r.Context()
+
+		username, err := auth.GetLoggedInUsername(r)
+		if err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusForbidden, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		user, err := userService.RetrieveUserByUsername(ctx, username)
+		if err != nil || user == nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		// unmarshal request
+		req := applyCouponOnCartRequest{}
+		if err := json.NewDecoder(r.Body).Decode(&req); (err != nil || req == applyCouponOnCartRequest{}) {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		// validate request
+		if err := req.Validate(); err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			return
+		}
+
+		if err := service.ApplyCouponOnCart(ctx, req.CouponName, req.CartID, user.ID); err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, errorcode.InternalError, err.Error())
+			return
+		}
+
+		cart, err := service.GetUserCart(ctx, user.ID)
+		if err != nil {
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, "internal_error", err.Error())
+			return
+		}
+		httpresponse.RespondJSON(w, http.StatusOK, cart, nil)
+	}
 }
 
 // RetrieveUserCart retrieve User cart from DB

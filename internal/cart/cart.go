@@ -3,10 +3,13 @@ package cart
 import (
 	"context"
 	"database/sql"
+	"errors"
 	"math"
 
 	"cinemo.com/shoping-cart/framework/loglib"
-	"cinemo.com/shoping-cart/internal/discount"
+	"cinemo.com/shoping-cart/internal/coupons"
+	"cinemo.com/shoping-cart/internal/discounts"
+	"cinemo.com/shoping-cart/internal/errorcode"
 	"cinemo.com/shoping-cart/internal/orm"
 	"cinemo.com/shoping-cart/internal/products"
 	"github.com/google/uuid"
@@ -18,30 +21,34 @@ import (
 type Service interface {
 	GetUserCart(ctx context.Context, userID int64) (*UserCart, error)
 	AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error)
+	ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error
 }
 
 type cartService struct {
 	DB              *sql.DB
-	DiscountService discount.Service
+	discountService discounts.Service
+	couponService   coupons.Service
 }
 
 // NewCartService Create New cart service
-func NewCartService(db *sql.DB, service discount.Service) Service {
-	return cartService{
+func NewCartService(db *sql.DB, service discounts.Service, couponService coupons.Service) Service {
+	return &cartService{
 		DB:              db,
-		DiscountService: service,
+		discountService: service,
+		couponService:   couponService,
 	}
 }
 
 // UserCart user cart for checkout page
 type UserCart struct {
-	ID                int64      `json:"id,omitempty"`
-	UserID            int64      `json:"user_id,omitempty"`
-	SubTotalAmount    int64      `json:"sub_total_amount,omitempty"`
-	TotalSavingAmount int64      `json:"total_saving_amount,omitempty"`
-	TotalAmount       int64      `json:"total_amount,omitempty"`
-	CartItems         []CartItem `json:"cart_items,omitempty"`
-	LineItems         []LineItem `json:"line_items,omitempty"`
+	ID                int64           `json:"id,omitempty"`
+	UserID            int64           `json:"user_id,omitempty"`
+	SubTotalAmount    int64           `json:"sub_total_amount,omitempty"`
+	TotalSavingAmount int64           `json:"total_saving_amount,omitempty"`
+	TotalAmount       int64           `json:"total_amount,omitempty"`
+	Coupon            *coupons.Coupon `json:"coupon,omitempty"`
+	CartItems         []CartItem      `json:"cart_items,omitempty"`
+	LineItems         []LineItem      `json:"line_items,omitempty"`
 }
 
 // CartItem items added by user
@@ -54,7 +61,7 @@ type CartItem struct {
 }
 
 // AddItemCart add product in cart by user
-func (s cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
+func (s *cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
 	logger := loglib.GetLogger(ctx)
 	tx, err := s.DB.Begin()
 	if err != nil {
@@ -86,17 +93,17 @@ func (s cartService) AddItemCart(ctx context.Context, userID int64, productID in
 	return s.GetUserCart(ctx, userID)
 }
 
-func itemQuantityMatchesWithDiscountQuantity(discountQuantity discount.Quantity, itemQuantity int64) bool {
+func itemQuantityMatchesWithDiscountQuantity(discountQuantity discounts.Quantity, itemQuantity int64) bool {
 	switch discountQuantity.Function {
-	case discount.EQ:
+	case discounts.EQ:
 		if discountQuantity.Value == itemQuantity {
 			return true
 		}
-	case discount.GTE:
+	case discounts.GTE:
 		if discountQuantity.Value <= itemQuantity {
 			return true
 		}
-	case discount.LTE:
+	case discounts.LTE:
 		if discountQuantity.Value >= itemQuantity {
 			return true
 		}
@@ -104,9 +111,11 @@ func itemQuantityMatchesWithDiscountQuantity(discountQuantity discount.Quantity,
 	return false
 }
 
-func (s cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, error) {
+func (s *cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, error) {
+	boil.DebugMode = true
 	cart, err := orm.Carts(
 		qm.Load(qm.Rels(orm.CartRels.CartItems, orm.CartItemRels.Product)),
+		qm.Load(qm.Rels(orm.CartRels.CartCoupons, orm.CartCouponRels.Coupon)),
 		qm.Where(orm.CartColumns.UserID+"=?", userID),
 	).One(ctx, s.DB)
 	if err != nil {
@@ -130,7 +139,12 @@ func (s cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart, 
 	}
 	usercart.SubTotalAmount = subTotal
 
-	usercart, err = applyDiscountRules(ctx, usercart, s.DiscountService)
+	// for now only one - one to mapping with cart and coupon
+	for _, cartCoupon := range cart.R.CartCoupons {
+		usercart.Coupon = coupons.TransformOrmToModel(cartCoupon.R.Coupon)
+	}
+
+	usercart, err = s.applyDiscountsOnCart(ctx, usercart)
 	if err != nil {
 		return nil, err
 	}
@@ -203,10 +217,10 @@ func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID i
 
 // LineItem lineitem for checkout page
 type LineItem struct {
-	ProductDiscount *discount.ProductDiscount `json:"discount_applied"`
-	CartItems       []CartItem                `json:"discount_applied_on"`
-	DiscountAmount  int64                     `json:"discount_amount"`
-	Quantity        int64                     `json:"quantity"`
+	ProductDiscount *discounts.ProductDiscount `json:"discount_applied"`
+	CartItems       []CartItem                 `json:"discount_applied_on"`
+	DiscountAmount  int64                      `json:"discount_amount"`
+	Quantity        int64                      `json:"quantity"`
 }
 
 // ComboCartItem combo cart item
@@ -215,15 +229,15 @@ type ComboCartItem struct {
 	PackedWithCartItem CartItem `json:"packed_with_cart_item,omitempty"`
 }
 
-func applyDiscountRules(ctx context.Context, usercart *UserCart, discountService discount.Service) (*UserCart, error) {
+func (s *cartService) applyDiscountsOnCart(ctx context.Context, usercart *UserCart) (*UserCart, error) {
 	logger := loglib.GetLogger(ctx)
-	productDiscountMap := make(map[int64][]discount.ProductDiscount)
+	productDiscountMap := make(map[int64][]discounts.ProductDiscount)
 	productMap := make(map[int64]*CartItem)
 	for _, item := range usercart.CartItems {
 		item := item
 		if _, ok := productMap[item.Product.ID]; !ok {
 			productMap[item.Product.ID] = &item
-			discounts, err := discountService.RetrieveProductDiscounts(ctx, item.Product.ID)
+			discounts, err := s.discountService.RetrieveProductDiscounts(ctx, item.Product.ID)
 			if err != nil {
 				return nil, err
 			}
@@ -231,96 +245,191 @@ func applyDiscountRules(ctx context.Context, usercart *UserCart, discountService
 		}
 	}
 
-	logger.Infof("productDiscountMap %v", productDiscountMap)
-
-	// quantity based product discount
-	for _, item := range usercart.CartItems {
-		var discountFound *discount.ProductDiscount
-		productDiscounts, ok := productDiscountMap[item.Product.ID]
-		if ok {
-			// find first product discount and break loop
-			for _, productDiscount := range productDiscounts {
-				if len(productDiscount.Rules) == 1 {
-					rule := productDiscount.Rules[0]
-					ruleQuantity := discount.Quantity{
-						Function: rule.ProductQuantityFN,
-						Value:    rule.ProductQuantity,
-					}
-					if itemQuantityMatchesWithDiscountQuantity(ruleQuantity, item.Quantity) {
-						discountFound = &productDiscount
-						break
-					}
+	if usercart.Coupon != nil && usercart.Coupon.ID > 0 {
+		// get coupn discount on cart
+		couponDiscount, err := s.getCouponDiscountOnCart(ctx, usercart, usercart.Coupon.ID)
+		if err != nil {
+			return nil, err
+		}
+		if couponDiscount != nil {
+			for _, rule := range couponDiscount.Rules {
+				discounts, ok := productDiscountMap[rule.ProductID]
+				if ok {
+					discounts = append(discounts, *couponDiscount)
 				}
-			}
-			if discountFound != nil {
-				// discountFound.Discount
-				lineItem := LineItem{
-					ProductDiscount: discountFound,
-				}
-				lineItem.CartItems = append(lineItem.CartItems, item)
-				if discountFound.DiscountType == discount.PERCENTAGE {
-					lineItem.DiscountAmount = int64(math.Round(float64(discountFound.Discount)/float64(100)*float64(item.Product.Amount))) * item.Quantity
-				}
-				lineItem.Quantity = 1
-				usercart.LineItems = append(usercart.LineItems, lineItem)
-				// remove items from map if discount is applied on those
-				delete(productMap, item.Product.ID)
+				productDiscountMap[rule.ProductID] = discounts
 			}
 		}
 	}
 
-	// iterate remaining product for combo discount
-	for productID := range productMap {
-		if productDiscounts, ok := productDiscountMap[productID]; ok {
-			var discountFound *discount.ProductDiscount
-			for _, productDiscount := range productDiscounts {
-				// does cart satisfy discount rule
-				numberOfRulesMatch := 0
-				for _, rule := range productDiscount.Rules {
-					//  cart contains discount product
-					cartItem, ok := productMap[rule.ProductID]
-					if !ok {
-						break
-					}
-					ruleQuantity := discount.Quantity{
-						Function: discount.GTE,
-						Value:    rule.ProductQuantity,
-					}
-					if !itemQuantityMatchesWithDiscountQuantity(ruleQuantity, cartItem.Quantity) {
-						break
-					}
-					numberOfRulesMatch = numberOfRulesMatch + 1
-				}
-				if numberOfRulesMatch == len(productDiscount.Rules) {
-					discountFound = &productDiscount
-				}
-			}
-
-			if discountFound != nil {
-				lineItem := LineItem{
-					ProductDiscount: discountFound,
-				}
-				// discountFound.Discount
-				if discountFound.DiscountType == discount.PERCENTAGE {
-					noOfSet := math.MaxFloat64
-					subTotal := int64(0)
-					for _, rule := range discountFound.Rules {
-						cartItem := productMap[rule.ProductID]
-						subTotal = subTotal + (cartItem.Product.Amount * rule.ProductQuantity)
-						noOfSet = math.Min(noOfSet, float64(cartItem.Quantity/rule.ProductQuantity))
-						lineItem.CartItems = append(lineItem.CartItems, *cartItem)
-					}
-					lineItem.Quantity = int64(noOfSet)
-					for _, rule := range discountFound.Rules {
-						cartItem := productMap[rule.ProductID]
-						cartItem.Quantity = cartItem.Quantity - (rule.ProductQuantity * lineItem.Quantity)
-					}
-					lineItem.DiscountAmount = int64(math.Round(float64(discountFound.Discount) / float64(100) * float64(subTotal) * noOfSet))
-					usercart.LineItems = append(usercart.LineItems, lineItem)
-				}
-			}
+	logger.Infof("productDiscountMap %#v", productDiscountMap)
+	for productID, productDiscounts := range productDiscountMap {
+		logger.Infof("%v, %v", productID, productDiscounts)
+		for _, productDiscount := range productDiscounts {
+			productDiscount := productDiscount
+			applyDiscountOnCart(ctx, productMap, usercart, productDiscount)
 		}
 	}
+	return usercart, nil
+}
+
+func applyDiscountOnCart(ctx context.Context, productMap map[int64]*CartItem, usercart *UserCart, discount discounts.ProductDiscount) (*UserCart, error) {
+	logger := loglib.GetLogger(ctx)
+
+	// apply product discount
+	applySingleDiscount(ctx, productMap, usercart, discount)
+
+	logger.Infof("%#v", productMap)
+	// apply combo product discount
+	applyComboDiscount(ctx, productMap, usercart, discount)
 
 	return usercart, nil
+}
+
+func applySingleDiscount(ctx context.Context, productMap map[int64]*CartItem, usercart *UserCart, productDiscount discounts.ProductDiscount) *UserCart {
+	if len(productDiscount.Rules) != 1 {
+		return usercart
+	}
+	var validDiscount *discounts.ProductDiscount
+	for _, item := range usercart.CartItems {
+		// check discount is of single type
+		rule := productDiscount.Rules[0]
+		if rule.ProductID != item.Product.ID {
+			continue
+		}
+		ruleQuantity := discounts.Quantity{
+			Function: rule.ProductQuantityFN,
+			Value:    rule.ProductQuantity,
+		}
+		if itemQuantityMatchesWithDiscountQuantity(ruleQuantity, item.Quantity) {
+			validDiscount = &productDiscount
+		}
+		if validDiscount != nil {
+			lineItem := LineItem{
+				ProductDiscount: validDiscount,
+			}
+			lineItem.CartItems = append(lineItem.CartItems, item)
+			if validDiscount.DiscountType == discounts.PERCENTAGE {
+				lineItem.DiscountAmount = int64(math.Round(float64(validDiscount.Discount)/float64(100)*float64(item.Product.Amount))) * item.Quantity
+			}
+			lineItem.Quantity = 1
+			usercart.LineItems = append(usercart.LineItems, lineItem)
+			// remove items from map if discount is applied on those
+			delete(productMap, item.Product.ID)
+		}
+	}
+	return usercart
+}
+
+func applyComboDiscount(ctx context.Context, productMap map[int64]*CartItem, usercart *UserCart, productDiscount discounts.ProductDiscount) *UserCart {
+	if len(productDiscount.Rules) <= 1 {
+		return usercart
+	}
+	var validDiscount *discounts.ProductDiscount
+	numberOfRulesMatch := int(0)
+	for _, rule := range productDiscount.Rules {
+		//  cart contains discount product
+		cartItem, ok := productMap[rule.ProductID]
+		if !ok {
+			break
+		}
+		if rule.ProductID != cartItem.Product.ID {
+			continue
+		}
+		ruleQuantity := discounts.Quantity{
+			Function: discounts.GTE,
+			Value:    rule.ProductQuantity,
+		}
+		if !itemQuantityMatchesWithDiscountQuantity(ruleQuantity, cartItem.Quantity) {
+			break
+		}
+		numberOfRulesMatch = numberOfRulesMatch + 1
+	}
+	if numberOfRulesMatch == len(productDiscount.Rules) {
+		validDiscount = &productDiscount
+	}
+	if validDiscount != nil {
+		lineItem := LineItem{
+			ProductDiscount: validDiscount,
+		}
+		// validDiscount.Discount
+		if validDiscount.DiscountType == discounts.PERCENTAGE {
+			noOfSet := math.MaxFloat64
+			subTotal := int64(0)
+			for _, rule := range validDiscount.Rules {
+				cartItem := productMap[rule.ProductID]
+				subTotal = subTotal + (cartItem.Product.Amount * rule.ProductQuantity)
+				noOfSet = math.Min(noOfSet, float64(cartItem.Quantity/rule.ProductQuantity))
+				lineItem.CartItems = append(lineItem.CartItems, *cartItem)
+			}
+			lineItem.Quantity = int64(noOfSet)
+			for _, rule := range validDiscount.Rules {
+				cartItem := productMap[rule.ProductID]
+				cartItem.Quantity = cartItem.Quantity - ((rule.ProductQuantity * lineItem.Quantity) * lineItem.Quantity)
+			}
+			lineItem.DiscountAmount = int64(math.Round(float64(validDiscount.Discount) / float64(100) * float64(subTotal) * noOfSet))
+			usercart.LineItems = append(usercart.LineItems, lineItem)
+		}
+	}
+	return usercart
+}
+
+func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error {
+
+	userCartID, err := getORCreateCartEntry(ctx, s.DB, userID)
+	if err != nil {
+		return err
+	}
+
+	if cartID != userCartID {
+		return errorcode.ValidationError{Err: errors.New("invalid-cart-id")}
+	}
+
+	coupon, err := s.couponService.RetrieveCouponByName(ctx, couponName)
+	if err != nil || coupon == nil {
+		return errorcode.ValidationError{Err: errors.New("invalid-coupon")}
+	}
+
+	usercart, err := s.GetUserCart(ctx, userID)
+	if err != nil {
+		return err
+	}
+
+	productDiscount, err := s.discountService.FetchDiscountByID(ctx, coupon.DiscountID)
+	if err != nil {
+		return err
+	}
+	if !(len(productDiscount.Rules) > 0) {
+		return errorcode.ValidationError{Err: errors.New("invalid-coupon-rules")}
+	}
+
+	if usercart == nil {
+		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+	}
+	var validDiscount *discounts.ProductDiscount
+	for _, item := range usercart.CartItems {
+		// check discount is of single type
+		rule := productDiscount.Rules[0]
+		ruleQuantity := discounts.Quantity{
+			Function: rule.ProductQuantityFN,
+			Value:    rule.ProductQuantity,
+		}
+		if itemQuantityMatchesWithDiscountQuantity(ruleQuantity, item.Quantity) {
+			validDiscount = &productDiscount
+			break
+		}
+	}
+
+	if validDiscount == nil {
+		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+	}
+
+	cartCoupon := &orm.CartCoupon{
+		CartID:   cartID,
+		CouponID: coupon.ID,
+	}
+	if err := cartCoupon.Insert(ctx, s.DB, boil.Infer()); err != nil {
+		return err
+	}
+	return nil
 }

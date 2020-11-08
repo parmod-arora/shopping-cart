@@ -1,9 +1,21 @@
+DELETE FROM "product_discount_rules";
+DELETE FROM "product_discounts";
+DELETE FROM "cart_items";
+DELETE from "products";
+DELETE FROM "carts";
+DELETE FROM "users";
+
 INSERT INTO products("id","name","details","amount","currency","image")
 VALUES
-(1,E'Apples',E'Apples Details',1000,E'USD','apple.jpeg'),
-(2, E'Bananas',E'Bananas Details',200,E'USD','banana.jpg'),
-(3, E'Pears',E'Pears Details',300,E'USD','pears.jpg'),
-(4, E'Oranges',E'Oranges Details',100,E'USD','orange.jpeg');
+(1,E'Apples',E'Apples Details',1000,E'SGD','apple.jpeg'),
+(2, E'Bananas',E'Bananas Details',200,E'SGD','banana.jpg'),
+(3, E'Pears',E'Pears Details',300,E'SGD','pears.jpg'),
+(4, E'Oranges',E'Oranges Details',100,E'SGD','orange.jpeg');
+
+INSERT INTO "users"("id","username","password","firstname","lastname","created_at","updated_at")
+VALUES
+(1,E'test',E'test',NULL,NULL,E'2020-11-03 04:17:31.084258+00',E'2020-11-03 04:17:31.084258+00'),
+(2,E'test2',E'test',NULL,NULL,E'2020-11-03 04:17:31.084258+00',E'2020-11-03 04:17:31.084258+00');
 
 -- Apples offer and Pear Banana discount entry
 INSERT INTO discounts("id","name","discount_type","discount","created_at","updated_at")

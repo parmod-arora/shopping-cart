@@ -36,10 +36,10 @@ CREATE TABLE cart_items (
     updated_at TIMESTAMP WITH TIME ZONE NOT NULL DEFAULT now(),
     UNIQUE (cart_id, product_id)
 );
-
+CREATE INDEX cart_items_product_id_idx ON cart_items(product_id);
 CREATE INDEX cart_items_cart_id_idx ON cart_items(cart_id);
 
-CREATE TABLE product_discounts (
+CREATE TABLE discounts (
     id BIGSERIAL PRIMARY KEY,
     name text NOT NULL,
     discount_type text NOT NULL,
@@ -48,9 +48,9 @@ CREATE TABLE product_discounts (
     updated_at timestamp with time zone NOT NULL DEFAULT now()
 );
 
-CREATE TABLE product_discount_rules (
+CREATE TABLE discount_rules (
     id BIGSERIAL PRIMARY KEY,
-    product_discount_id bigint NOT NULL REFERENCES product_discounts(id),
+    discount_id bigint NOT NULL REFERENCES discounts(id),
     product_id bigint NOT NULL REFERENCES products(id),
     product_quantity bigint NOT NULL,
     product_quantity_fn text NOT NULL,

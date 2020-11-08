@@ -9,6 +9,4 @@ CREATE TABLE users (
 );
 
 ALTER TABLE users ADD UNIQUE (username);
-
--- Indices -------------------------------------------------------
-CREATE INDEX "users_username_idx" ON users(username);
+CREATE INDEX users_username_idx ON users(username);

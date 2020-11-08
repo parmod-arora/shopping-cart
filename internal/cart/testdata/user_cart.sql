@@ -1,5 +1,5 @@
-DELETE FROM "product_discount_rules";
-DELETE FROM "product_discounts";
+DELETE FROM "discount_rules";
+DELETE FROM "discounts";
 DELETE FROM "cart_items";
 DELETE from "products";
 DELETE FROM "carts";
@@ -11,7 +11,6 @@ VALUES
 (2, E'Bananas',E'Bananas Details',200,E'SGD','banana.jpg'),
 (3, E'Pears',E'Pears Details',300,E'SGD','pears.jpg'),
 (4, E'Oranges',E'Oranges Details',100,E'SGD','orange.jpeg');
-
 
 INSERT INTO "users"("id","username","password","firstname","lastname","created_at","updated_at")
 VALUES
@@ -32,13 +31,23 @@ VALUES
 (5,2,4,1,E'2020-11-07 11:21:54.916205+00',E'2020-11-07 11:21:54.916205+00');
 
 -- Apples offer
-INSERT INTO "product_discounts"("id","name","discount_type","discount","created_at","updated_at")
+INSERT INTO "discounts"("id","name","discount_type","discount","created_at","updated_at")
 VALUES
 (1,E'Apple 10 % discount on 7 or more Apples',E'PERCENTAGE',10,E'2020-11-07 07:05:50.608799+00',E'2020-11-07 07:05:50.608799+00'),
-(2,E'Combo discount on 4Pears and 2 Banana',E'PERCENTAGE',30,E'2020-11-07 07:13:59.881972+00',E'2020-11-07 07:13:59.881972+00');
+(2,E'Combo discount on 4Pears and 2 Banana',E'PERCENTAGE',30,E'2020-11-07 07:13:59.881972+00',E'2020-11-07 07:13:59.881972+00'),
+(3,E'Coupon discount on oranges 30%',E'PERCENTAGE',30,E'2020-11-07 17:37:25.873064+00',E'2020-11-07 17:37:25.873064+00');
 
-INSERT INTO "product_discount_rules"("id","product_id","product_quantity","product_quantity_fn","created_at","updated_at","product_discount_id")
+INSERT INTO "discount_rules"("id","discount_id","product_id","product_quantity","product_quantity_fn","created_at","updated_at")
 VALUES
-(1,1,7,E'GTE',E'2020-11-07 07:16:18.80056+00',E'2020-11-07 07:16:18.80056+00',1),
-(2,3,4,E'EQ',E'2020-11-07 07:16:40.367592+00',E'2020-11-07 07:16:40.367592+00',2),
-(3,2,2,E'EQ',E'2020-11-07 07:17:07.020461+00',E'2020-11-07 07:17:07.020461+00',2);
+(1,1,1,7,E'GTE',E'2020-11-07 07:16:18.80056+00',E'2020-11-07 07:16:18.80056+00'),
+(2,2,3,4,E'EQ',E'2020-11-07 07:16:40.367592+00',E'2020-11-07 07:16:40.367592+00'),
+(3,2,2,2,E'EQ',E'2020-11-07 07:17:07.020461+00',E'2020-11-07 07:17:07.020461+00'),
+(4,3,4,1,E'GTE',E'2020-11-07 17:48:39.443301+00',E'2020-11-07 17:48:39.443301+00');
+
+INSERT INTO "coupons"("id","name","product_id","discount_id","expire_at","redeemed_at")
+VALUES
+(1,E'COUPON_30',4,3,E'2020-11-08 07:22:54.497664+00',NULL);
+
+INSERT INTO "cart_coupons"("id","cart_id","coupon_id","created_at","updated_at")
+VALUES
+(1,2,1,E'2020-11-08 09:21:44.399036+00',E'2020-11-08 09:21:44.399036+00');

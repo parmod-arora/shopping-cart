@@ -1,6 +1,5 @@
 # shopping-cart
 
-
 ## Task
 Develop an online eCommerce store selling fruit, which contains the following features:
 
@@ -38,8 +37,3 @@ Users must be able to return to their cart after closing the browser, and see th
 1.  The following totals must be shown:
   - Total price.
   - Total savings.
-
-
-
-Rule Engine Assumptions
-- Prority   Product Quantity Design has 

@@ -1,11 +1,11 @@
-package discount_test
+package discounts_test
 
 import (
 	"context"
 	"log"
 	"testing"
 
-	"cinemo.com/shoping-cart/internal/discount"
+	discount "cinemo.com/shoping-cart/internal/discounts"
 	"cinemo.com/shoping-cart/pkg/testutil"
 	"cinemo.com/shoping-cart/pkg/trace"
 )

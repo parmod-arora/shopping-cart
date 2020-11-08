@@ -10,8 +10,8 @@ import (
 	"cinemo.com/shoping-cart/internal/cart"
 	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/internal/users"
-	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
+	"github.com/volatiletech/sqlboiler/v4/boil"
 )
 
 var (
@@ -27,8 +27,9 @@ func init() {
 
 // Handler returns the http handler that handles all requests
 func Handler(app *application.App) http.Handler {
+	boil.DebugMode = true
 	r := mux.NewRouter()
-	r.Use(handlers.RecoveryHandler())
+	// r.Use(handlers.RecoveryHandler())
 	r.Use(middleware.RequestLogger)
 	r.StrictSlash(true)
 	v1 := r.PathPrefix("/api/v1").Subrouter()
