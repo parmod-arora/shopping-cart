@@ -22,6 +22,7 @@ type Service interface {
 	GetUserCart(ctx context.Context, userID int64) (*UserCart, error)
 	AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error)
 	ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error
+	RemoveCouponFromCart(ctx context.Context, couponID, cartID int64) error
 }
 
 type cartService struct {
@@ -388,6 +389,10 @@ func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, 
 	coupon, err := s.couponService.RetrieveCouponByName(ctx, couponName)
 	if err != nil || coupon == nil {
 		return errorcode.ValidationError{Err: errors.New("invalid-coupon")}
+	}
+
+	if coupon.IsExpired {
+		return errorcode.ValidationError{Err: errors.New("expired-coupon")}
 	}
 
 	usercart, err := s.GetUserCart(ctx, userID)

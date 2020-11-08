@@ -129,7 +129,7 @@ func TransformOrmToModel(coupon *orm.Coupon) *Coupon {
 		Name:       coupon.Name,
 		DiscountID: coupon.DiscountID,
 		ProductID:  coupon.ProductID,
-		IsExpired:  coupon.ExpireAt.After(time.Now().UTC()),
+		IsExpired:  coupon.ExpireAt.Before(time.Now().UTC()),
 		ExpireAt:   coupon.ExpireAt,
 	}
 }

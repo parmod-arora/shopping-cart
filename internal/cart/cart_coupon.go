@@ -5,6 +5,8 @@ import (
 	"errors"
 
 	"cinemo.com/shoping-cart/internal/discounts"
+	"cinemo.com/shoping-cart/internal/orm"
+	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
 var errExpireCoupon error = errors.New("coupon_expired")
@@ -27,4 +29,13 @@ func (s *cartService) getCouponDiscountOnCart(ctx context.Context, userCart *Use
 	}
 
 	return &discount, err
+}
+
+// RemoveCouponFromCart remove coupon from cart
+func (s *cartService) RemoveCouponFromCart(ctx context.Context, couponID, cartID int64) error {
+	_, err := orm.CartCoupons(
+		qm.Where(orm.CartCouponColumns.CartID+"=?", cartID),
+		qm.And(orm.CartCouponColumns.CouponID+"=?", couponID),
+	).DeleteAll(ctx, s.DB)
+	return err
 }
