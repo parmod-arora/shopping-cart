@@ -1,5 +1,6 @@
-DELETE FROM "product_discount_rules";
-DELETE FROM "product_discounts";
+DELETE FROM "discount_rules";
+DELETE FROM "coupons";
+DELETE FROM "discounts";
 DELETE FROM "cart_items";
 DELETE from "products";
 DELETE FROM "carts";
@@ -29,12 +30,12 @@ VALUES
 (1,2,1,10,E'2020-11-03 04:19:02.694029+00',E'2020-11-03 04:19:02.694029+00');
 
 -- Apples offer
-INSERT INTO "product_discounts"("id","name","discount_type","discount","created_at","updated_at")
+INSERT INTO "discounts"("id","name","discount_type","discount","created_at","updated_at")
 VALUES
 (1,E'Apple 10 % discount on 7 or more Apples',E'PERCENTAGE',10,E'2020-11-07 07:05:50.608799+00',E'2020-11-07 07:05:50.608799+00'),
 (2,E'Combo discount on 4Pears and 2 Banana',E'PERCENTAGE',30,E'2020-11-07 07:13:59.881972+00',E'2020-11-07 07:13:59.881972+00');
 
-INSERT INTO "product_discount_rules"("id","product_id","product_quantity","product_quantity_fn","created_at","updated_at","product_discount_id")
+INSERT INTO "discount_rules"("id","product_id","product_quantity","product_quantity_fn","created_at","updated_at","discount_id")
 VALUES
 (1,1,7,E'GTE',E'2020-11-07 07:16:18.80056+00',E'2020-11-07 07:16:18.80056+00',1),
 (2,3,4,E'EQ',E'2020-11-07 07:16:40.367592+00',E'2020-11-07 07:16:40.367592+00',2),
