@@ -26,7 +26,7 @@ RUN apt-get update && apt-get install -y ca-certificates && \
 WORKDIR $APP_HOME
 COPY . $APP_HOME
 
-RUN make build
+RUN make -f Makefile.docker build
 FROM ${RELEASE_IMAGE_NAME}:${RELEASE_IMAGE_TAG}
 RUN apk --no-cache add tzdata ca-certificates
 
