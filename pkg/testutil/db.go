@@ -13,10 +13,13 @@ import (
 	"cinemo.com/shoping-cart/pkg/projectpath"
 	"cinemo.com/shoping-cart/pkg/trace"
 
-	// include migrate file driver
 	"github.com/golang-migrate/migrate/v4"
+
+	// include migrate file driver
 	"github.com/golang-migrate/migrate/v4/database/postgres"
-	_ "github.com/golang-migrate/migrate/v4/source/github"
+
+	// include migrate file driver
+	_ "github.com/golang-migrate/migrate/v4/source/file"
 
 	// import pq driver
 	_ "github.com/lib/pq"

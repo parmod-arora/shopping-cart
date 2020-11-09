@@ -49,7 +49,7 @@ func (req *userRequest) Validate() error {
 
 type loginRequest struct {
 	Username string `json:"email"`
-	Password string `json:"password" validate:"required"`
+	Password string `json:"password"`
 }
 
 type loginResponse struct {

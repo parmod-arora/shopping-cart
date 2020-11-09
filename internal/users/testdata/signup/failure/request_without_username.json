@@ -1,5 +1,5 @@
 {
-  "firstname": "firstname",
-  "lastname": "lastname",
+  "firstName": "firstname",
+  "lastName": "lastname",
   "password": "password"
 }

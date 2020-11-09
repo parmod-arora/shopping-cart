@@ -29,7 +29,7 @@ OK_COLOR=\033[32;01m
 ERROR_COLOR=\033[31;01m
 
 test: setup
-	@if $(TEST_COMPOSE) env $(shell cat $(ENV_FILE) | egrep -v '^#' | xargs) \
+	@if env $(shell cat $(ENV_FILE) | egrep -v '^#' | xargs) \
 		make go-test; \
 	then printf "\n\n$(OK_COLOR)[Test okay -- `date`]$(NO_COLOR)\n"; \
 	else printf "\n\n$(ERROR_COLOR)[Test FAILED -- `date`]$(NO_COLOR)\n"; exit 1; fi
