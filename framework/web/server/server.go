@@ -21,8 +21,11 @@ type App struct {
 func New(addr string, handler http.Handler) *App {
 	return &App{
 		server: &http.Server{
-			Addr:    addr,
-			Handler: handler,
+			Addr:         addr,
+			Handler:      handler,
+			IdleTimeout:  time.Second * 60,
+			WriteTimeout: 15 * time.Second,
+			ReadTimeout:  15 * time.Second,
 		},
 		logger: logrus.Logger{
 			Out:       os.Stdout,

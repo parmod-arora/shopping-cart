@@ -10,6 +10,7 @@ import (
 	"cinemo.com/shoping-cart/internal/cart"
 	"cinemo.com/shoping-cart/internal/products"
 	"cinemo.com/shoping-cart/internal/users"
+	"cinemo.com/shoping-cart/pkg/projectpath"
 	"github.com/gorilla/handlers"
 	"github.com/gorilla/mux"
 )
@@ -36,5 +37,9 @@ func Handler(app *application.App) http.Handler {
 	users.Handlers(v1.PathPrefix("/users").Subrouter(), app.UserService)
 	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService, app.UserService)
 	cart.Handlers(v1.PathPrefix("/carts").Subrouter(), app.CartService, app.UserService)
+
+	// SPA handler
+	spa := spaHandler{staticPath: projectpath.Root + "/ui-app/build", indexPath: "index.html"}
+	r.PathPrefix("/").Handler(spa)
 	return r
 }
