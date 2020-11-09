@@ -32,13 +32,6 @@ func Handler(app *application.App) http.Handler {
 	r.Use(middleware.RequestLogger)
 	r.StrictSlash(true)
 
-	r.PathPrefix("/swagger/").Handler(httpSwagger.Handler(
-		httpSwagger.URL("http://localhost:4000/docs/swagger.json"),
-		httpSwagger.DeepLinking(true),
-		httpSwagger.DocExpansion("none"),
-		httpSwagger.DomID("#swagger-ui"),
-	))
-
 	v1 := r.PathPrefix("/api/v1").Subrouter()
 	users.Handlers(v1.PathPrefix("/users").Subrouter(), app.UserService)
 	products.Handlers(v1.PathPrefix("/products").Subrouter(), app.ProductService, app.UserService)

@@ -1,18 +1,6 @@
 version: "3.5"
 
 services:
-  go:
-    container_name: go-local
-    image: golang:1.15
-    ports:
-      - "4000:4000"
-    environment:
-      TZ: Asia/Singapore
-      DATABASE_URL: postgres://shopingcart:@db:5432/shopingcart?sslmode=disable
-    volumes:
-      - api-go-build-cache:/root/.cache/go-build
-    networks:
-      - shopingcart
   db:
     container_name: db-local
     ports:
@@ -33,10 +21,28 @@ services:
   db-migrate:
     container_name: db-migrate-shopingcart-local
     image: migrate/migrate:v4.6.2
-    restart: "no"
-    entrypoint: ""
+    restart: "on-failure"
+    command: ["-path", "/migrations", "-database",  "postgres://shopingcart:@db:5432/shopingcart?sslmode=disable", "up"]
+    volumes:
+      - ./data/migrations/:/migrations
+    networks:
+      - shopingcart
+  
+  go:
+    container_name: go-local
+    build:
+      context: .
+      dockerfile: dockerfile
+    restart: "on-failure"
+    ports:
+      - "4000:4000"
     environment:
+      TZ: Asia/Singapore
       DATABASE_URL: postgres://shopingcart:@db:5432/shopingcart?sslmode=disable
+      PORT: 4000
+      JWT_EXPIRES_SECONDS: 36000
+    volumes:
+      - api-go-build-cache:/root/.cache/go-build
     networks:
       - shopingcart
 
