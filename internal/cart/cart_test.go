@@ -3,6 +3,7 @@ package cart_test
 import (
 	"context"
 	"database/sql"
+	"sort"
 	"testing"
 	"time"
 
@@ -254,6 +255,14 @@ func Test_orderService_GetUserCart(t *testing.T) {
 			if (err != nil) != tt.wantErr {
 				t.Errorf("orderService.GetUserCart() error = %v, wantErr %v", err, tt.wantErr)
 			}
+			sort.Slice(got.LineItems, func(p, q int) bool {
+				return got.LineItems[p].ProductDiscount.ID < got.LineItems[q].ProductDiscount.ID
+			})
+
+			sort.Slice(tt.want.LineItems, func(p, q int) bool {
+				return tt.want.LineItems[p].ProductDiscount.ID < tt.want.LineItems[q].ProductDiscount.ID
+			})
+
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("line items diff %v", cmp.Diff(got, tt.want))
 			}
