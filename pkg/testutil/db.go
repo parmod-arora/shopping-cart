@@ -14,9 +14,9 @@ import (
 	"cinemo.com/shoping-cart/pkg/trace"
 
 	// include migrate file driver
-	"github.com/mattes/migrate"
-	"github.com/mattes/migrate/database/postgres"
-	_ "github.com/mattes/migrate/source/file"
+	"github.com/golang-migrate/migrate/v4"
+	"github.com/golang-migrate/migrate/v4/database/postgres"
+	_ "github.com/golang-migrate/migrate/v4/source/github"
 
 	// import pq driver
 	_ "github.com/lib/pq"
