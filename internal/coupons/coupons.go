@@ -12,7 +12,7 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-const orangeDiscountName = "Coupon discount on oranges 30%"
+const orangeDiscountName = "30% coupon discount on oranges"
 const orangeProductName = "Oranges"
 
 func (s *couponService) CreateCoupon(ctx context.Context, now time.Time) (*Coupon, error) {

@@ -22,7 +22,6 @@ func ListProduct(service Service, userService users.Service) func(w http.Respons
 	return func(w http.ResponseWriter, r *http.Request) {
 		ctx := r.Context()
 
-		// @TODO create a interceptor for this task
 		username, err := auth.GetLoggedInUsername(r)
 		if err != nil {
 			httpresponse.ErrorResponseJSON(ctx, w, http.StatusForbidden, errorcode.ErrorsInRequestData, err.Error())

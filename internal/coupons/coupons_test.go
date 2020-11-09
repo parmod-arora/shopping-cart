@@ -23,6 +23,7 @@ func Test_couponService_CreateCoupon(t *testing.T) {
 	dbConnPool, schema, err := testutil.PrepareDatabase(traceInfo)
 	if err != nil {
 		t.Fatalf("Not able to create unique schema dbConnPool: %v", err)
+		return
 	}
 	defer func() {
 		dbConnPool.Exec("DROP SCHEMA  IF EXISTS " + schema + " CASCADE")
@@ -68,7 +69,10 @@ func Test_couponService_CreateCoupon(t *testing.T) {
 	}
 	for _, tt := range tests {
 		t.Run(tt.name, func(t *testing.T) {
-			testutil.LoadFixture(dbConnPool, tt.fixture)
+			err := testutil.LoadFixture(dbConnPool, tt.fixture)
+			if err != nil {
+				t.Errorf("error %v", err.Error())
+			}
 			s := coupons.NewCouponService(tt.fields.db, tt.fields.productService, tt.fields.discountService)
 
 			got, err := s.CreateCoupon(tt.args.ctx, now)

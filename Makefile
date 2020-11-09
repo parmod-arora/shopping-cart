@@ -13,8 +13,8 @@ APP_PATH := /${APP_NAME}
 ENV_FILE = .env
 
 # Set compose command
-COMPOSE = docker-compose -f docker-compose.yml
-#COMPOSE = docker-compose -f docker-compose-local.yml
+#COMPOSE = docker-compose -f docker-compose.yml
+COMPOSE = docker-compose -f docker-compose-local.yml
 
 # Commands for running docker compose
 RUN_COMPOSE = $(COMPOSE) run --rm --service-ports -w $(APP_PATH) $(MOUNT_VOLUME) go

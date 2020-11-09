@@ -56,6 +56,7 @@ func Test_productService_RetrieveProducts(t *testing.T) {
 					Name:      "Apples",
 					Details:   "Apples Details",
 					Amount:    1000,
+					Image:     "apple.jpeg",
 					CreatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
 					UpdatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
 				},
@@ -63,6 +64,7 @@ func Test_productService_RetrieveProducts(t *testing.T) {
 					ID:        2,
 					Name:      "Bananas",
 					Details:   "Bananas Details",
+					Image:     "banana.jpg",
 					Amount:    200,
 					CreatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
 					UpdatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
@@ -71,6 +73,7 @@ func Test_productService_RetrieveProducts(t *testing.T) {
 					ID:        3,
 					Name:      "Pears",
 					Details:   "Pears Details",
+					Image:     "pears.jpg",
 					Amount:    300,
 					CreatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
 					UpdatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
@@ -79,6 +82,7 @@ func Test_productService_RetrieveProducts(t *testing.T) {
 					ID:        4,
 					Name:      "Oranges",
 					Details:   "Oranges Details",
+					Image:     "orange.jpeg",
 					Amount:    100,
 					CreatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC), // "2020-11-02 07:47:39.894527 +0000 UTC",
 					UpdatedAt: time.Date(2020, 11, 02, 07, 52, 39, 0, time.UTC),
@@ -107,6 +111,78 @@ func Test_productService_RetrieveProducts(t *testing.T) {
 
 			if !cmp.Equal(got, tt.want) {
 				t.Errorf("productService.RetrieveProducts() = %v", cmp.Diff(got, tt.want))
+			}
+		})
+	}
+}
+
+func Test_productService_RetrieveProductIDByName(t *testing.T) {
+	t.Parallel()
+	// Start adding unique database schema, make the parallel testing possible
+	// Create unique schema
+	traceInfo := trace.Trace()
+	dbConnPool, schema, err := testutil.PrepareDatabase(traceInfo)
+	if err != nil {
+		t.Fatalf("Not able to create unique schema dbConnPool: %v", err)
+	}
+	defer func() {
+		dbConnPool.Exec("DROP SCHEMA  IF EXISTS " + schema + " CASCADE")
+		dbConnPool.Close()
+	}()
+
+	type fields struct {
+		DB      *sql.DB
+		fixture string
+	}
+	type args struct {
+		ctx  context.Context
+		name string
+	}
+	tests := []struct {
+		name    string
+		fields  fields
+		args    args
+		want    int64
+		wantErr bool
+	}{
+		{
+			name: "fetch apple",
+			fields: fields{
+				DB:      dbConnPool,
+				fixture: "testdata/retrieve_products.sql",
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "Apples",
+			},
+			want: 1,
+		},
+		{
+			name: "fetch apple",
+			fields: fields{
+				DB:      dbConnPool,
+				fixture: "testdata/retrieve_products.sql",
+			},
+			args: args{
+				ctx:  context.Background(),
+				name: "invalid",
+			},
+			wantErr: true,
+		},
+	}
+	for _, tt := range tests {
+		t.Run(tt.name, func(t *testing.T) {
+			if err := testutil.LoadFixture(dbConnPool, tt.fields.fixture); err != nil {
+				log.Fatalf("error %v", err.Error())
+			}
+			s := NewProductService(dbConnPool)
+			got, err := s.RetrieveProductIDByName(tt.args.ctx, tt.args.name)
+			if (err != nil) != tt.wantErr {
+				t.Errorf("productService.RetrieveProductIDByName() error = %v, wantErr %v", err, tt.wantErr)
+				return
+			}
+			if got != tt.want {
+				t.Errorf("productService.RetrieveProductIDByName() = %v, want %v", got, tt.want)
 			}
 		})
 	}

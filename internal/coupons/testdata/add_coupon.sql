@@ -1,9 +1,11 @@
-DELETE FROM "product_discount_rules";
-DELETE FROM "product_discounts";
+DELETE FROM "discount_rules";
+DELETE FROM "coupons";
+DELETE FROM "discounts";
 DELETE FROM "cart_items";
 DELETE from "products";
 DELETE FROM "carts";
 DELETE FROM "users";
+
 
 INSERT INTO products("id","name","details","amount","currency","image")
 VALUES
@@ -32,6 +34,6 @@ VALUES
 
 -- Orange Discount entry and rules
 INSERT INTO discounts("id","name","discount_type","discount","created_at","updated_at")
-VALUES (3,E'Coupon discount on oranges 30%',E'PERCENTAGE',30,E'2020-11-07 17:37:25.873064+00',E'2020-11-07 17:37:25.873064+00');
+VALUES (3,E'30% coupon discount on oranges',E'PERCENTAGE',30,E'2020-11-07 17:37:25.873064+00',E'2020-11-07 17:37:25.873064+00');
 INSERT INTO discount_rules("id","discount_id","product_id","product_quantity","product_quantity_fn","created_at","updated_at")
 VALUES (4,3,4,1,E'GTE',E'2020-11-07 17:48:39.443301+00',E'2020-11-07 17:48:39.443301+00');
