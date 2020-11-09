@@ -29,3 +29,6 @@ const AuthValidateFailed = "AuthValidateFailed"
 
 // AmountMisMatch error
 const AmountMisMatch = "amount_mismatch"
+
+// UserNotFound error
+const UserNotFound = "user_not_found"

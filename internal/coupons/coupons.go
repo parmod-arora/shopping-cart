@@ -6,58 +6,23 @@ import (
 	"strconv"
 	"time"
 
-	"cinemo.com/shoping-cart/internal/discounts"
+	"cinemo.com/shoping-cart/internal/errorcode"
 	"cinemo.com/shoping-cart/internal/orm"
-	"cinemo.com/shoping-cart/internal/products"
 	"github.com/volatiletech/sqlboiler/v4/boil"
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-// Service is the interface to expose coupons functions
-type Service interface {
-	CreateCoupon(ctx context.Context, now time.Time) (*Coupon, error)
-	RetrieveCouponProduct(ctx context.Context, couponName string, productID int64, timestamp time.Time) (*Coupon, error)
-	RetrieveCouponByName(ctx context.Context, couponName string) (*Coupon, error)
-	RetrieveCouponByID(ctx context.Context, ID int64) (*Coupon, error)
-}
-
-type couponService struct {
-	db              *sql.DB
-	productService  products.Service
-	discountService discounts.Service
-}
-
-// NewCouponService creates new coupon service
-func NewCouponService(db *sql.DB, productService products.Service, discountService discounts.Service) Service {
-	return &couponService{
-		db:              db,
-		productService:  productService,
-		discountService: discountService,
-	}
-}
-
 const orangeDiscountName = "Coupon discount on oranges 30%"
 const orangeProductName = "Oranges"
-
-// Coupon struct represts the coupon type
-type Coupon struct {
-	ID         int64      `json:"id"`
-	Name       string     `json:"name"`
-	ExpireAt   time.Time  `json:"expire_at"`
-	RedeemedAt *time.Time `json:"redeemed_at,omitempty"`
-	IsExpired  bool       `json:"expire"`
-	ProductID  int64      `json:"product_id"`
-	DiscountID int64      `json:"discount_id"`
-}
 
 func (s *couponService) CreateCoupon(ctx context.Context, now time.Time) (*Coupon, error) {
 	discountID, err := s.discountService.FetchDiscountIDByName(ctx, orangeDiscountName)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	productID, err := s.productService.RetrieveProductIDByName(ctx, orangeProductName)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	return createCoupon(ctx, s.db, now, discountID, productID)
 }
@@ -67,7 +32,7 @@ func (s *couponService) RetrieveCouponByName(ctx context.Context, couponName str
 		qm.Where(orm.CouponColumns.Name+"=?", couponName),
 	).One(ctx, s.db)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	if ormCoupon == nil {
 		return &Coupon{}, nil
@@ -80,7 +45,7 @@ func (s *couponService) RetrieveCouponByID(ctx context.Context, ID int64) (*Coup
 		qm.Where(orm.CouponColumns.ID+"=?", ID),
 	).One(ctx, s.db)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	if ormCoupon == nil {
 		return &Coupon{}, nil
@@ -100,7 +65,7 @@ func retrieveCoupon(ctx context.Context, db *sql.DB, couponName string, productI
 		qm.And(orm.CouponColumns.RedeemedAt+" is NULL"),
 	).One(ctx, db)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	if ormCoupon == nil {
 		return &Coupon{}, nil
@@ -118,20 +83,7 @@ func createCoupon(ctx context.Context, db *sql.DB, timestamp time.Time, discount
 	}
 	err := ormCoupon.Insert(ctx, db, boil.Infer())
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	return TransformOrmToModel(ormCoupon), nil
-}
-
-// TransformOrmToModel transform orm to model
-func TransformOrmToModel(coupon *orm.Coupon) *Coupon {
-	return &Coupon{
-		ID:         coupon.ID,
-		Name:       coupon.Name,
-		DiscountID: coupon.DiscountID,
-		ProductID:  coupon.ProductID,
-		RedeemedAt: coupon.RedeemedAt.Ptr(),
-		IsExpired:  coupon.ExpireAt.Before(time.Now().UTC()),
-		ExpireAt:   coupon.ExpireAt,
-	}
 }

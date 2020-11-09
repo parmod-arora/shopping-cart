@@ -17,36 +17,12 @@ import (
 	"github.com/volatiletech/sqlboiler/v4/queries/qm"
 )
 
-// Service is the interface to expose order functions
-type Service interface {
-	GetUserCart(ctx context.Context, userID int64) (*UserCart, error)
-	AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error)
-	ApplyCouponOnCart(ctx context.Context, couponName string, cartID, userID int64) error
-	RemoveCouponFromCart(ctx context.Context, couponID, cartID int64) error
-	CheckoutCart(ctx context.Context, usercart *UserCart) error
-}
-
-type cartService struct {
-	db              *sql.DB
-	discountService discounts.Service
-	couponService   coupons.Service
-}
-
-// NewCartService Create New cart service
-func NewCartService(db *sql.DB, service discounts.Service, couponService coupons.Service) Service {
-	return &cartService{
-		db:              db,
-		discountService: service,
-		couponService:   couponService,
-	}
-}
-
 // AddItemCart add product in cart by user
 func (s *cartService) AddItemCart(ctx context.Context, userID int64, productID int64, quantity int64) (*UserCart, error) {
 	logger := loglib.GetLogger(ctx)
 	tx, err := s.db.Begin()
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	defer tx.Rollback()
 	// get or create user cart entry
@@ -69,7 +45,7 @@ func (s *cartService) AddItemCart(ctx context.Context, userID int64, productID i
 	}
 	if err := tx.Commit(); err != nil {
 		logger.Errorf("Error commit%v", err.Error())
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	return s.GetUserCart(ctx, userID)
 }
@@ -125,7 +101,7 @@ func (s *cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart,
 		if err == sql.ErrNoRows {
 			return &UserCart{}, nil
 		}
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 	usercart := &UserCart{
 		ID:                cart.ID,
@@ -149,7 +125,7 @@ func (s *cartService) GetUserCart(ctx context.Context, userID int64) (*UserCart,
 
 	usercart, err = s.applyDiscountsOnCart(ctx, usercart)
 	if err != nil {
-		return nil, err
+		return nil, errorcode.DBError{Err: err}
 	}
 
 	// total saving
@@ -169,20 +145,20 @@ func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, 
 	}
 
 	if cartID != userCartID {
-		return errorcode.ValidationError{Err: errors.New("invalid-cart-id")}
+		return errorcode.ValidationError{Err: errors.New("Invalid cart id")}
 	}
 
 	coupon, err := s.couponService.RetrieveCouponByName(ctx, couponName)
 	if err != nil || coupon == nil {
-		return errorcode.ValidationError{Err: errors.New("invalid-coupon")}
+		return errorcode.ValidationError{Err: errors.New("Provided coupon is invalid")}
 	}
 
 	if coupon.IsExpired {
-		return errorcode.ValidationError{Err: errors.New("expired-coupon")}
+		return errorcode.ValidationError{Err: errors.New("Provided coupon is expired")}
 	}
 
 	if coupon.RedeemedAt != nil {
-		return errorcode.ValidationError{Err: errors.New("redeemed-coupon")}
+		return errorcode.ValidationError{Err: errors.New("Coupon already redeemed")}
 	}
 
 	usercart, err := s.GetUserCart(ctx, userID)
@@ -195,11 +171,11 @@ func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, 
 		return err
 	}
 	if !(len(productDiscount.Rules) > 0) {
-		return errorcode.ValidationError{Err: errors.New("invalid-coupon-rules")}
+		return errors.New("invalid-coupon-rules")
 	}
 
 	if usercart == nil {
-		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+		return errorcode.ValidationError{Err: errors.New("Coupon not aplicable")}
 	}
 	var validDiscount *discounts.ProductDiscount
 	for _, item := range usercart.CartItems {
@@ -216,7 +192,7 @@ func (s *cartService) ApplyCouponOnCart(ctx context.Context, couponName string, 
 	}
 
 	if validDiscount == nil {
-		return errorcode.ValidationError{Err: errors.New("coupon-not-aplicable")}
+		return errorcode.ValidationError{Err: errors.New("Coupon not aplicable")}
 	}
 
 	cartCoupon := &orm.CartCoupon{
@@ -278,14 +254,16 @@ func createUserCartItemEntry(ctx context.Context, db boil.ContextExecutor, cartI
 		orm.CartItemColumns.Quantity,
 		orm.CartItemColumns.UpdatedAt,
 	), boil.Infer()); err != nil {
-		return err
+		return errorcode.DBError{Err: err}
 	}
 	return nil
 }
 
 func deleteUserCartItemEntry(ctx context.Context, db boil.ContextExecutor, cartID, productID int64) error {
-	_, err := orm.CartItems(qm.Where(orm.CartItemColumns.CartID+"=? AND "+orm.CartItemColumns.ProductID+"=?", cartID, productID)).DeleteAll(ctx, db)
-	return err
+	if _, err := orm.CartItems(qm.Where(orm.CartItemColumns.CartID+"=? AND "+orm.CartItemColumns.ProductID+"=?", cartID, productID)).DeleteAll(ctx, db); err != nil {
+		return errorcode.DBError{Err: err}
+	}
+	return nil
 }
 
 func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID int64) (int64, error) {
@@ -299,21 +277,16 @@ func getORCreateCartEntry(ctx context.Context, db boil.ContextExecutor, userID i
 		orm.CartColumns.UpdatedAt,
 	), boil.Infer())
 	if err != nil {
-		return 0, err
+		return 0, errorcode.DBError{Err: err}
 	}
 	return cart.ID, nil
 }
 
 func applyDiscountOnCart(ctx context.Context, productMap map[int64]*CartItem, usercart *UserCart, discount discounts.ProductDiscount) (*UserCart, error) {
-	logger := loglib.GetLogger(ctx)
-
 	// apply product discount
 	applySingleDiscount(ctx, productMap, usercart, discount)
-
-	logger.Infof("%#v", productMap)
 	// apply combo product discount
 	applyComboDiscount(ctx, productMap, usercart, discount)
-
 	return usercart, nil
 }
 

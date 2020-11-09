@@ -21,7 +21,11 @@ export const sagas = {
       const response = yield call(axios.post, add_coupon_url, request)
       yield put(populateCartInfo(response))
     } catch (error) {
-      yield put(errorMsg('Unexpected error from server!'))
+      if (error.error_description) {
+        yield put(errorMsg(error.error_description))
+      } else {
+        yield put(errorMsg('Unexpected error from server!'))  
+      }
     }
     yield put(stopLoading())
   },
@@ -36,7 +40,11 @@ export const sagas = {
       const response = yield call(axios.post, remove_coupon_url, request)
       yield put(populateCartInfo(response))
     } catch (error) {
-      yield put(errorMsg('Unexpected error from server!'))
+      if (error.error_description) {
+        yield put(errorMsg(error.error_description))
+      } else {
+        yield put(errorMsg('Unexpected error from server!'))  
+      }
     }
     yield put(stopLoading())
   }

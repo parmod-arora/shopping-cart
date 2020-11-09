@@ -19,10 +19,14 @@ instance.interceptors.request.use((config) => {
 instance.interceptors.response.use(response => {
   return response.data
 }, error => {
+  console.log(error.response.data)
   if (error.response.status === 401) {
     sessionStorage.removeItem(AUTH_TOKEN_KEY)
     window.location.replace("/login");
     return Promise.reject(error)
+  }
+  if (error.response.data) {
+    return Promise.reject(error.response.data)  
   }
   return Promise.reject(error)
 })

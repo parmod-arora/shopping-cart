@@ -1,6 +1,7 @@
 package coupons
 
 import (
+	"errors"
 	"net/http"
 	"time"
 
@@ -31,15 +32,24 @@ func CreateCoupon(service Service, userService users.Service) func(w http.Respon
 
 		user, err := userService.RetrieveUserByUsername(ctx, username)
 		if err != nil || user == nil {
-			httpresponse.ErrorResponseJSON(ctx, w, http.StatusForbidden, errorcode.AuthValidateFailed, err.Error())
+			status, code := statusAndErrorCodeForServiceError(err)
+			httpresponse.ErrorResponseJSON(ctx, w, status, code, "User not found")
 			return
 		}
 
 		coupon, err := service.CreateCoupon(ctx, time.Now().UTC())
 		if err != nil {
-			httpresponse.ErrorResponseJSON(ctx, w, http.StatusInternalServerError, "internal_error", err.Error())
+			status, code := statusAndErrorCodeForServiceError(err)
+			httpresponse.ErrorResponseJSON(ctx, w, status, code, err.Error())
 			return
 		}
 		httpresponse.RespondJSON(w, http.StatusCreated, coupon, nil)
 	}
+}
+
+func statusAndErrorCodeForServiceError(err error) (int, string) {
+	if errors.As(err, &errorcode.DBError{}) {
+		return http.StatusInternalServerError, errorcode.DatabaseProcessError
+	}
+	return http.StatusInternalServerError, errorcode.InternalError
 }

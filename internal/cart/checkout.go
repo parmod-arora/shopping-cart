@@ -39,7 +39,7 @@ func Checkout(service Service, userService users.Service) func(w http.ResponseWr
 
 		user, err := userService.RetrieveUserByUsername(ctx, username)
 		if err != nil || user == nil {
-			httpresponse.ErrorResponseJSON(ctx, w, http.StatusBadRequest, errorcode.ErrorsInRequestData, err.Error())
+			httpresponse.ErrorResponseJSON(ctx, w, http.StatusUnauthorized, errorcode.UserNotFound, "User not found")
 			return
 		}
 

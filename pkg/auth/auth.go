@@ -8,7 +8,6 @@ import (
 	"strconv"
 	"time"
 
-	"cinemo.com/shoping-cart/framework/loglib"
 	"github.com/SermoDigital/jose/crypto"
 	"github.com/SermoDigital/jose/jws"
 	"github.com/SermoDigital/jose/jwt"
@@ -80,7 +79,5 @@ func GetLoggedInUsername(r *http.Request) (string, error) {
 	if loggedInUserEmail == "" {
 		return "", errors.New("Could not find Email Address in Token")
 	}
-	logger := loglib.GetLogger(r.Context())
-	logger.Infof("Logged in user: %v", loggedInUserEmail)
 	return loggedInUserEmail, nil
 }

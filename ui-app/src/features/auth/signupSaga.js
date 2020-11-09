@@ -15,7 +15,11 @@ export const sagas = {
       yield put(successMsg('Thank you for signing up!'))
       yield put(push('/'))
     } catch (error) {
-      yield put(errorMsg('Unexpected error from server!'))
+      if (error.error_description) {
+        yield put(errorMsg(error.error_description))
+      } else {
+        yield put(errorMsg('Unexpected error from server!'))  
+      }
     }
     yield put(stopLoading())
   }

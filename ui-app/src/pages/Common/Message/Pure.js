@@ -5,9 +5,9 @@ import Alert from '@material-ui/lab/Alert';
 
 function Pure({ succssMsg, errorMsg }) {
   if (succssMsg) {
-    return <Snackbar anchorOrigin={{ 
+    return <Snackbar anchorOrigin={{
       vertical: 'top',
-      horizontal: 'right' 
+      horizontal: 'center'
     }} open={!!succssMsg}>
       <Alert elevation={6} variant="filled" severity="success">
         {succssMsg}
@@ -16,10 +16,13 @@ function Pure({ succssMsg, errorMsg }) {
   }
   if (errorMsg) {
     return <div>
-        <Snackbar open={!!errorMsg}>
-          <Alert elevation={6} variant="filled" severity="error">
-            {errorMsg}
-          </Alert>
+      <Snackbar anchorOrigin={{
+        vertical: 'top',
+        horizontal: 'center'
+      }} open={!!errorMsg}>
+        <Alert elevation={6} variant="filled" severity="error">
+          {errorMsg}
+        </Alert>
       </Snackbar>
     </div>
   }

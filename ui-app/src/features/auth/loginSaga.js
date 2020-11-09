@@ -18,7 +18,11 @@ export const sagas = {
       const response = yield call(axios.post, login_url, payload)
       yield put(loginSuccess(response))
     } catch (error) {
-      yield put(errorMsg('Unexpected error from server!'))
+      if (error.error_description) {
+        yield put(errorMsg(error.error_description))
+      } else {
+        yield put(errorMsg('Unexpected error from server!'))  
+      }
     }
     yield put(stopLoading())
   },
