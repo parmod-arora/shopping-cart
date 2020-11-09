@@ -13,8 +13,8 @@ import { InputText } from "../../component/Input/InputText";
 export default function SignIn({ login }) {
   const formik = useFormik({
     initialValues: {
-      email: 'admin@admin.com',
-      password: 'root'
+      email: '',
+      password: ''
     },
     validate,
     validateOnBlur: false,
