@@ -116,7 +116,7 @@ types closely correlate to your database column types. This is expanded by our e
 
 # Getting Started with UI App
 
-This project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
+UI project was bootstrapped with [Create React App](https://github.com/facebook/create-react-app).
 
 ## Available Scripts
 

@@ -5,9 +5,9 @@ import { Provider } from 'react-redux';
 import { ThemeProvider } from '@material-ui/core/styles';
 import configureStore from "./store/store";
 import theme from './theme';
+import App from "./App";
 
 const store = configureStore()
-import App from "./App";
 
 let container = null;
 beforeEach(() => {
