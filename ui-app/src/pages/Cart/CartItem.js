@@ -1,4 +1,5 @@
 import React from "react";
+import PropTypes from 'prop-types'
 import { Grid, IconButton, Typography, ListItem, ListItemText } from "@material-ui/core";
 import { makeStyles } from '@material-ui/core/styles';
 import { AddCircle, RemoveCircle } from '@material-ui/icons';
@@ -20,7 +21,7 @@ export const useStyles = makeStyles((theme) => ({
   },
 }));
 
-export default function CartItem({ item, removeProductfromCart, addProductToCart }) {
+function CartItem({ item, removeProductfromCart, addProductToCart }) {
   const classes = useStyles();
   const cartItem = item
   return (
@@ -57,3 +58,22 @@ function convertToDollar(amount) {
   dollars = dollars.toLocaleString("en-US", { style: "currency", currency: "USD" });
   return dollars
 }
+
+CartItem.defaultProps = {
+  item: {
+    product: {
+    },
+    amount: '',
+    quantity: '',
+    sub_total: ''
+  },
+  removeProductfromCart: () => {},
+  addProductToCart: () => {}
+}
+CartItem.prototype = {
+  item: PropTypes.object,
+  removeProductfromCart: PropTypes.func,
+  addProductToCart: PropTypes.func
+}
+
+export default CartItem

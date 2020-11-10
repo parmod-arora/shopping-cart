@@ -1,4 +1,5 @@
 import React, { useEffect } from "react";
+import PropTypes from 'prop-types'
 import Layout from "../Layout";
 import { Grid, Button } from "@material-ui/core";
 import CartItem from "./CartItem";
@@ -35,12 +36,12 @@ export const useStyles = makeStyles((theme) => ({
   alignRight: {
     textAlign: "right"
   },
-  alignCenter:{
+  alignCenter: {
     textAlign: "center"
   }
 }));
 
-export default function Checkout(props) {
+function Checkout(props) {
   const { lineItems, cartItems, fetchUserCart, addProductToCart, removeProductfromCart, subTotalAmount, totalSavingAmount, totalAmount, dispatchApplyCoupon, dispatchRemoveCoupon, coupon = {}, dispatchCheckout } = props
   const classes = useStyles();
   useEffect(() => {
@@ -61,7 +62,7 @@ export default function Checkout(props) {
     },
   })
 
-  if (cartItems.length <=0) {
+  if (cartItems.length <= 0) {
     return (<Layout>
       <Grid className={classes.container} container spacing={3}>
         <Grid item sm={12} className={classes.alignCenter}>
@@ -74,7 +75,7 @@ export default function Checkout(props) {
   const couponName = coupon.name
   return (
     <Layout>
-      
+
       <Grid className={classes.container} container spacing={3}>
         <Grid item sm={12} className={classes.title}><Typography variant="h6">Products</Typography></Grid>
         <Grid item sm={8}>
@@ -169,3 +170,35 @@ const validate = values => {
   }
   return errors;
 };
+
+const noop = () => { }
+Checkout.defaultProps = {
+  lineItems: [],
+  cartItems: [],
+  fetchUserCart: noop,
+  addProductToCart: noop,
+  removeProductfromCart: noop,
+  subTotalAmount: 0,
+  totalSavingAmount: 0,
+  totalAmount: 0,
+  dispatchApplyCoupon: noop,
+  dispatchRemoveCoupon: noop,
+  coupon: {},
+  dispatchCheckout: noop
+}
+Checkout.prototype = {
+  lineItems: PropTypes.array,
+  cartItems: PropTypes.array,
+  fetchUserCart: PropTypes.func,
+  addProductToCart: PropTypes.func,
+  removeProductfromCart: PropTypes.func,
+  subTotalAmount: PropTypes.number,
+  totalSavingAmount: PropTypes.number,
+  totalAmount: PropTypes.number,
+  dispatchApplyCoupon: PropTypes.func,
+  dispatchRemoveCoupon: PropTypes.func,
+  coupon: PropTypes.object,
+  dispatchCheckout: PropTypes.func,
+}
+
+export default Checkout

@@ -27,7 +27,7 @@ Above problem can be solved using below options
 
 1. We can save cart information on client side  i.e localstorage and when user return to their cart after closing broswer we can show the cart information
 
-But, above approach has it's limitation, Information will not be accessible when user use another browser/device to access shopping cart.
+But, above approach has it's limitation, cart information will not be accessible when user use another browser/device to access shopping cart.
 
 2. Persist cart infomation in database, using this approach user cart information will be accessible to user on any device 
 
@@ -41,7 +41,7 @@ But, above approach has it's limitation, Information will not be accessible when
 
 > A coupon code can be used to get a 30% discount on oranges, if applied to the cart, otherwise oranges are full price.
 
-For cart rules we need flexible design so that it can handle the current cart rules requirement.
+For cart rules we need flexible design so that it can handle the current cart rules requirements 
 as well as it also take care of future offers on different products and combination of products
 
 1. `discounts` - Store discount related information 

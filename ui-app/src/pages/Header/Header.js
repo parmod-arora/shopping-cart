@@ -1,4 +1,5 @@
 import React from 'react';
+import PropTypes from 'prop-types'
 import {
   Badge,
   AppBar,
@@ -12,7 +13,7 @@ import {
 import { Link } from "react-router-dom";
 import { Home } from "@material-ui/icons";
 import ShoppingCartIcon from '@material-ui/icons/ShoppingCart';
-import { makeStyles, withStyles } from "@material-ui/core/styles";
+import { makeStyles } from "@material-ui/core/styles";
 
 const useStyles = makeStyles(theme => ({
   navbarDisplayFlex: {
@@ -42,12 +43,6 @@ const useStyles = makeStyles(theme => ({
     padding: theme.spacing(0, 1)
   }
 }));
-
-const navLinks = [
-  { title: `product`, path: `/products` },
-  { title: `Cart`, path: `/cart` },
-  { title: `logout`, path: `/login` }
-];
 
 export const Header = ({logout, cartItemsCount}) => {
   const classes = useStyles();
@@ -86,3 +81,14 @@ export const Header = ({logout, cartItemsCount}) => {
     </AppBar>
   );
 };
+
+Header.defaultProps = {
+  logout: () =>{},
+  cartItemsCount: 0
+}
+Header.prototype = {
+  logout: PropTypes.func,
+  cartItemsCount: PropTypes.number
+}
+
+export default Header
