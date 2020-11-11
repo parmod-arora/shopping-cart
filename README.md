@@ -5,6 +5,8 @@
 3. Build project `docker-compose build`
 4. Run project `docker-compose up`
 
+http://localhost:4000
+
 **Run test locally**
 run `make test`
 
